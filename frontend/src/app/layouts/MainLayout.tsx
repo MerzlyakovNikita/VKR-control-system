@@ -16,7 +16,10 @@ export const MainLayout = () => {
     {
       key: 'logout',
       label: 'Выход',
-      onClick: () => navigate('/login'),
+      onClick: () => {
+        localStorage.removeItem('token')
+        navigate('/login')
+      },
     },
   ]
 

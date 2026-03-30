@@ -1,12 +1,22 @@
-import { Form, Input, Button, Card } from 'antd'
+import { Form, Input, Button, Card, message} from 'antd'
 import { api } from '../../shared/api/axios'
+import { useNavigate } from 'react-router-dom'
 
 export default function RegisterPage() {
+  const navigate = useNavigate()
+
   const onFinish = async (values: any) => {
-    await api.post('/auth/register', {
-      ...values,
-      role: 'STUDENT',
-    })
+    try {
+      const { data } = await api.post('/auth/register', values)
+
+      localStorage.setItem('token', data.token)
+
+      message.success('Успешная регистрация')
+
+      navigate('/thesis')
+    } catch (e: any) {
+      message.error(e.response?.data?.message || 'Ошибка регистрации')
+    }
   }
 
   return (
