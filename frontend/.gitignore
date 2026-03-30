@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite
+
+.env
+.env.*
+
+*.log
+.DS_Store
+
+.vscode/
+.idea/
+
+*.tsbuildinfo
