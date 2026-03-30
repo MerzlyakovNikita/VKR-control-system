@@ -24,7 +24,11 @@ export default function ProfilePage() {
   return (
     <Card>
       <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-        <Avatar size={80} icon={<UserOutlined />} />
+        <Avatar
+          size={80}
+          style={{ backgroundColor: '#1677ff' }}
+          icon={<UserOutlined />}
+        />
 
         <div>
           <h2 style={{ margin: 0 }}>
