@@ -1,9 +1,25 @@
-import { Card, Descriptions, Avatar } from 'antd'
+import { Card, Descriptions, Avatar, Select, message } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
-import { getUser } from '../../shared/lib/auth'
+import { useEffect, useState } from 'react'
+import { api } from '../../shared/api/axios'
 
 export default function ProfilePage() {
-  const user = getUser()
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    loadUser()
+  }, [])
+
+  const loadUser = async () => {
+    try {
+      const { data } = await api.get('/users/me')
+      setUser(data)
+    } catch {
+      message.error('Ошибка загрузки профиля')
+    }
+  }
+
+  if (!user) return null
 
   return (
     <Card>
@@ -12,7 +28,7 @@ export default function ProfilePage() {
 
         <div>
           <h2 style={{ margin: 0 }}>
-            {user.lastName} {user.firstName} {user.middleName}
+            {user.last_name} {user.first_name} {user.middle_name}
           </h2>
           <div>{user.email}</div>
           <div>{user.phone}</div>
@@ -20,18 +36,19 @@ export default function ProfilePage() {
       </div>
 
       <Descriptions column={1} bordered>
-        {user.role === 'STUDENT' && (
-          <>
-            <Descriptions.Item label="Группа">
-              {user.group}
-            </Descriptions.Item>
-            <Descriptions.Item label="Направление">
-              {user.direction}
-            </Descriptions.Item>
-            <Descriptions.Item label="Код направления">
-              {user.directionCode}
-            </Descriptions.Item>
-          </>
+        {/* пока без группы */}
+        <Descriptions.Item label="Группа">
+          <Select
+            placeholder="Будет доступно позже"
+            style={{ width: 250 }}
+            disabled
+          />
+        </Descriptions.Item>
+
+        {user.role === 'TEACHER' && (
+          <Descriptions.Item label="Должность">
+            {user.position}
+          </Descriptions.Item>
         )}
       </Descriptions>
     </Card>
