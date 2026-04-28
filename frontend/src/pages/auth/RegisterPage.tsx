@@ -1,6 +1,7 @@
 import { Form, Input, Button, Card, message} from 'antd'
 import { api } from '../../shared/api/axios'
 import { useNavigate } from 'react-router-dom'
+import './AuthPage.css'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -13,15 +14,15 @@ export default function RegisterPage() {
 
       message.success('Успешная регистрация')
 
-      navigate('/thesis')
+      navigate('/profile')
     } catch (e: any) {
       message.error(e.response?.data?.message || 'Ошибка регистрации')
     }
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 80 }}>
-      <Card title="Регистрация" style={{ width: 400 }}>
+    <div className="auth-container">
+      <Card title="Регистрация" className="auth-card">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item label="Фамилия" name="lastName" required>
             <Input />

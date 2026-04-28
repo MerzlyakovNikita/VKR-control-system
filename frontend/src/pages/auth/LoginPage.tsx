@@ -1,6 +1,7 @@
 import { Form, Input, Button, Card, message } from 'antd'
 import { api } from '../../shared/api/axios'
 import { useNavigate } from 'react-router-dom'
+import './AuthPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -10,18 +11,20 @@ export default function LoginPage() {
       const { data } = await api.post('/auth/login', values)
 
       localStorage.setItem('token', data.token)
+      const me = await api.get('/users/me')
+      localStorage.setItem('user', JSON.stringify(me.data))
 
       message.success('Вход выполнен')
 
-      navigate('/thesis')
+      navigate('/profile')
     } catch (e: any) {
       message.error(e.response?.data?.message || 'Ошибка входа')
     }
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 80 }}>
-      <Card title="Авторизация" style={{ width: 400 }}>
+    <div className="auth-container">
+      <Card title="Авторизация" className="auth-card">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item label="Email" name="email" required>
             <Input />

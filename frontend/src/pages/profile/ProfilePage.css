@@ -1,0 +1,101 @@
+.profile-page {
+  padding: 16px;
+}
+
+.profile-card {
+  width: 60%;
+}
+
+.profile-content {
+  display: flex;
+  gap: 40px;
+}
+
+.left-block {
+  flex: 1;
+}
+
+.right-block {
+  flex: 1;
+  border-left: 1px solid #eee;
+  padding-left: 20px;
+}
+
+.info-row {
+  margin-bottom: 12px;
+}
+
+.label {
+  color: #888;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.value {
+  font-weight: 500;
+}
+
+.group-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.group-row .ant-select {
+  min-width: 200px;
+}
+
+.thesis-card {
+  margin-top: 10px;
+  width: 60%;
+}
+
+.thesis-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-row label {
+  font-size: 12px;
+  color: #888;
+}
+
+.form-row input,
+.form-row textarea {
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.form-row textarea {
+  resize: none;
+  overflow-y: auto;
+  max-height: 120px;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+  border-color: #1677ff;
+  outline: none;
+}
+
+.form-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.form-actions button {
+  width: auto;
+  min-width: 160px;
+}

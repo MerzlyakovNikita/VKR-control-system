@@ -1,0 +1,86 @@
+.groups-page {
+  padding: 16px;
+}
+
+.groups-list {
+  width: 100%;
+}
+
+.group-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.group-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.group-card-title {
+  flex: 1;
+}
+
+.group-card:hover .edit-icon {
+  opacity: 1;
+}
+
+.edit-icon {
+  opacity: 0;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.group-card .ant-card-body {
+  flex: 1;
+}
+
+.right-panel {
+  position: sticky;
+  top: 20px;
+}
+
+.group-card-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.add-button {
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: white;
+  padding: 20px;
+  width: 400px;
+  border-radius: 8px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form input,
+.form select {
+  padding: 6px;
+}

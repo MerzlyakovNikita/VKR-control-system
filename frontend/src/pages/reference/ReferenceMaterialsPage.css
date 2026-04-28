@@ -1,0 +1,102 @@
+.reference-page {
+  padding: 16px;
+}
+
+.reference-layout {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.reference-left {
+  flex: 2;
+}
+
+.reference-right {
+  flex: 1;
+}
+
+.upload-button {
+  margin-top: 10px;
+}
+
+.reference-add-card,
+.materials-container {
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.materials-container {
+  height: 100%;
+}
+
+.materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.material-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  margin: 2px 8px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.material-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.material-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-icon {
+  font-size: 18px;
+}
+
+.material-name {
+  font-size: 14px;
+}
+
+.material-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.materials-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 200px;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.empty-text {
+  font-size: 14px;
+}
+
+.download-icon:hover {
+  color: #1677ff;
+}
+
+.delete-icon:hover {
+  color: #ff4d4f;
+}
