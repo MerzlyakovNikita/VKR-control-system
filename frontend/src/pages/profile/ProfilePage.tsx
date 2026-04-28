@@ -230,7 +230,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="form-row">
-                <label>Место выполнения</label>
+                <label>Место выполнения ВКР (преддипломная практика)</label>
                 <input
                   name="practice_place"
                   value={thesisForm.practice_place}
@@ -240,7 +240,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="form-row">
-                <label>Руководитель от предприятия</label>
+                <label>Руководитель от предприятия (ФИО, телефон)</label>
                 <input
                   name="company_supervisor_name"
                   value={thesisForm.company_supervisor_name}

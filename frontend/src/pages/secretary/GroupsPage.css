@@ -32,7 +32,7 @@
   opacity: 1;
 }
 
-.delete-icon,
+.group-card .delete-icon,
 .edit-icon {
   opacity: 0;
   cursor: pointer;
@@ -41,9 +41,6 @@
 
 .edit-icon:hover {
   color: #1677ff;
-}
-.delete-icon:hover {
-  color: #ff4d4f;
 }
 
 .group-card .ant-card-body {
@@ -59,6 +56,10 @@
   margin-bottom: 10px;
   padding: 6px 12px;
   cursor: pointer;
+}
+
+.open-button {
+  width: 100%;
 }
 
 .modal-overlay {

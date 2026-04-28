@@ -123,6 +123,7 @@ export default function GroupsPage() {
                   actions={[
                     <Button
                       type="link"
+                      className="open-button"
                       onClick={(e) => {
                         e.stopPropagation()
                         navigate(`/groups/${g.id}`)

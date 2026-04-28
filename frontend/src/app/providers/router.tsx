@@ -4,6 +4,7 @@ import LoginPage from '../../pages/auth/LoginPage'
 import RegisterPage from '../../pages/auth/RegisterPage'
 import ProfilePage from '../../pages/profile/ProfilePage'
 import GroupsPage from '../../pages/secretary/GroupsPage'
+import GroupPage from '../../pages/secretary/GroupPage'
 import ReferenceMaterialsPage from '../../pages/reference/ReferenceMaterialsPage'
 import { ProtectedRoute } from '../providers/ProtectedRoute'
 
@@ -34,7 +35,7 @@ export const AppRouter = () => {
           }
         />
 
-        <Route path="groups/:id" element={<div>Страница группы</div>} />
+        <Route path="groups/:id" element={<GroupPage />} />
 
         <Route path="documents" element={<ReferenceMaterialsPage />} />
       </Route>

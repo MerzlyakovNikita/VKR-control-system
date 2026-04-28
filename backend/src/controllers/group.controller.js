@@ -112,3 +112,55 @@ export const deleteGroup = async (req, res) => {
     res.status(500).json({ message: 'Ошибка удаления группы' })
   }
 }
+
+export const getGroupStudents = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const result = await db.query(
+      `
+      SELECT 
+        u.id,
+        u.last_name,
+        u.first_name,
+        u.middle_name,
+        u.phone,
+        u.email,
+
+        t.topic,
+        t.supervisor_name,
+        t.practice_place,
+        t.company_supervisor_name
+
+      FROM users u
+      LEFT JOIN thesis t ON t.student_id = u.id
+
+      WHERE u.group_id = $1
+      ORDER BY u.last_name
+      `,
+      [id],
+    )
+
+    res.json(result.rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка получения данных группы' })
+  }
+}
+
+export const getGroupById = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const result = await db.query('SELECT name FROM groups WHERE id = $1', [id])
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Группа не найдена' })
+    }
+
+    res.json(result.rows[0])
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка получения группы' })
+  }
+}

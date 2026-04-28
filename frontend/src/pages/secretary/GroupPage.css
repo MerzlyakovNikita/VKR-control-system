@@ -1,0 +1,42 @@
+.group-page {
+  padding: 16px;
+}
+
+.group-page .ant-table-cell {
+  white-space: normal;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+.group-page .ant-table-cell div {
+  line-height: 1.4;
+}
+
+.group-page .ant-table {
+  table-layout: fixed;
+}
+
+.group-page .ant-table-thead > tr > th {
+  vertical-align: middle !important;
+  text-align: center;
+  height: 80px;
+  padding: 8px;
+}
+
+.group-page .ant-table-tbody > tr > td {
+  vertical-align: middle;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.group-page .ant-table-thead > tr > th > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.group-page .group-search {
+  margin-bottom: 12px;
+  max-width: 400px;
+}
