@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, Button, Upload, message, Modal } from 'antd'
+import { Card, Button, Upload, message, Modal, Tree, Input } from 'antd'
 import {
   UploadOutlined,
   DownloadOutlined,
@@ -10,6 +10,7 @@ import {
   FilePptOutlined,
   FolderOutlined,
   FileOutlined,
+  PlusOutlined,
 } from '@ant-design/icons'
 import { api } from '../../shared/api/axios'
 import './ReferenceMaterialsPage.css'
@@ -18,6 +19,20 @@ export default function ReferenceMaterialsPage() {
   const [materials, setMaterials] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
   const [fileList, setFileList] = useState<any[]>([])
+  const [folders, setFolders] = useState<any[]>([])
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
+
+  const isSecretary = user?.role === 'SECRETARY'
+
+  useEffect(() => {
+    loadMaterials()
+    loadFolders()
+    loadUser()
+  }, [])
 
   const loadMaterials = async () => {
     const { data } = await api.get('/reference-materials')
@@ -29,10 +44,37 @@ export default function ReferenceMaterialsPage() {
     setUser(data)
   }
 
-  useEffect(() => {
-    loadMaterials()
-    loadUser()
-  }, [])
+  const loadFolders = async () => {
+    const { data } = await api.get('/folders')
+    setFolders(data)
+  }
+
+  const buildTree = (list: any[]) => {
+    const map = new Map()
+    const roots: any[] = []
+
+    list.forEach((item) => {
+      map.set(item.id, {
+        key: item.id,
+        title: item.name,
+        children: [],
+      })
+    })
+
+    list.forEach((item) => {
+      if (item.parent_id && map.has(item.parent_id)) {
+        map.get(item.parent_id).children.push(map.get(item.id))
+      } else {
+        roots.push(map.get(item.id))
+      }
+    })
+
+    return roots
+  }
+
+  const filteredMaterials = selectedFolderId
+    ? materials.filter((m) => m.folder_id === selectedFolderId)
+    : materials.filter((m) => !m.folder_id)
 
   const handleAdd = async () => {
     if (fileList.length === 0) {
@@ -45,16 +87,18 @@ export default function ReferenceMaterialsPage() {
       formData.append('files', file)
     })
 
+    if (selectedFolderId) {
+      formData.append('folder_id', selectedFolderId)
+    }
+
     try {
       const { data } = await api.post('/reference-materials/multiple', formData)
 
       const { uploaded, skipped } = data
-      console.log('uploaded:', uploaded)
-      console.log('skipped:', skipped)
 
       if (uploaded.length > 0 && skipped.length === 0) {
         message.success({
-          content: `Загружены: ${uploaded.join(', ')}`,
+          content: `Все файлы загружены`,
           duration: 6,
         })
       } else if (uploaded.length > 0 && skipped.length > 0) {
@@ -64,7 +108,7 @@ export default function ReferenceMaterialsPage() {
         })
       } else if (uploaded.length === 0 && skipped.length > 0) {
         message.error({
-          content: `Эти файлы уже существуют: ${skipped.join(', ')}`,
+          content: `Все загружаемые файлы уже существуют`,
           duration: 6,
         })
       } else {
@@ -130,19 +174,124 @@ export default function ReferenceMaterialsPage() {
     return <FileOutlined />
   }
 
+  const handleCreateFolder = async () => {
+    const name = newFolderName.trim()
+
+    if (!name) {
+      message.warning('Введите название папки')
+      return
+    }
+
+    try {
+      setCreating(true)
+
+      await api.post('/folders', {
+        name,
+        parent_id: selectedFolderId || null,
+      })
+
+      message.success('Папка создана')
+
+      setIsFolderModalOpen(false)
+      setNewFolderName('')
+
+      loadFolders()
+    } catch (e: any) {
+      if (e.response?.status === 400) {
+        message.error(e.response.data.message)
+      } else {
+        message.error('Ошибка создания папки')
+      }
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const confirmDeleteFolder = (folderId: string) => {
+    Modal.confirm({
+      title: 'Удалить папку?',
+      content: 'Все вложенные папки и файлы будут удалены',
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+
+      onOk: async () => {
+        try {
+          await api.delete(`/folders/${folderId}`)
+
+          message.success('Папка удалена')
+
+          if (selectedFolderId === folderId) {
+            setSelectedFolderId(null)
+          }
+
+          loadFolders()
+          loadMaterials()
+        } catch {
+          message.error('Ошибка удаления')
+        }
+      },
+    })
+  }
+
   return (
     <div className="reference-page">
       <div className="reference-layout">
         <div className="reference-left">
+          <Card className="folders-tree">
+            <Tree
+              treeData={buildTree(folders)}
+              expandedKeys={expandedKeys}
+              onExpand={(keys) => setExpandedKeys(keys as string[])}
+              onSelect={(keys) => setSelectedFolderId(keys[0] as string)}
+              showIcon={false}
+              titleRender={(nodeData) => {
+                const isSelected = selectedFolderId === nodeData.key
+
+                return (
+                  <div className={`material-item ${isSelected ? 'selected-folder' : ''}`}>
+                    <div className="material-left">
+                      <span className="file-icon">
+                        <FolderOutlined />
+                      </span>
+                      <span className="material-name">{nodeData.title}</span>
+                    </div>
+                    {isSecretary && (
+                      <div className="material-actions">
+                        <DeleteOutlined
+                          className="delete-icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            confirmDeleteFolder(nodeData.key)
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              }}
+            />
+            {isSecretary && (
+              <div className="folders-header">
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={() => setIsFolderModalOpen(true)}
+                >
+                  Новая папка
+                </Button>
+              </div>
+            )}
+          </Card>
           <Card className="materials-container">
-            {materials.length === 0 ? (
+            {filteredMaterials.length === 0 ? (
               <div className="materials-empty">
                 <span className="empty-icon">📁</span>
                 <div className="empty-text">Пока нет загруженных материалов</div>
               </div>
             ) : (
               <div className="materials-list">
-                {materials.map((item) => (
+                {filteredMaterials.map((item) => (
                   <div key={item.id} className="material-item">
                     <div className="material-left">
                       <span className="file-icon">{getFileIcon(item.name)}</span>
@@ -155,7 +304,7 @@ export default function ReferenceMaterialsPage() {
                         onClick={() => handleDownload(item.id, item.name)}
                       />
 
-                      {user?.role === 'SECRETARY' && (
+                      {isSecretary && (
                         <DeleteOutlined
                           className="delete-icon"
                           onClick={() => handleDelete(item.id)}
@@ -169,7 +318,7 @@ export default function ReferenceMaterialsPage() {
           </Card>
         </div>
 
-        {user?.role === 'SECRETARY' && (
+        {isSecretary && (
           <div className="reference-right">
             <Card title="Добавить файлы" className="reference-add-card">
               <Upload
@@ -193,6 +342,27 @@ export default function ReferenceMaterialsPage() {
           </div>
         )}
       </div>
+      {isSecretary && (
+        <Modal
+          title="Создать папку"
+          open={isFolderModalOpen}
+          onCancel={() => {
+            setIsFolderModalOpen(false)
+            setNewFolderName('')
+          }}
+          onOk={handleCreateFolder}
+          okText="Создать"
+          cancelText="Отмена"
+          confirmLoading={creating}
+        >
+          <Input
+            placeholder="Название папки"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onPressEnter={handleCreateFolder}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

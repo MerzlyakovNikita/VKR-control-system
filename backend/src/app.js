@@ -7,6 +7,7 @@ import userRoutes from './routes/user.routes.js'
 import groupRoutes from './routes/group.routes.js'
 import thesisRoutes from './routes/thesis.routes.js'
 import referenceMaterialRoutes from './routes/referenceMaterial.routes.js'
+import folderRoutes from './routes/folder.routes.js'
 
 dotenv.config()
 
@@ -21,6 +22,7 @@ app.use('/groups', groupRoutes)
 app.use('/thesis', thesisRoutes)
 app.use('/reference-materials', referenceMaterialRoutes)
 app.use('/uploads', express.static('uploads'))
+app.use('/folders', folderRoutes)
 
 const PORT = process.env.PORT || 3000
 

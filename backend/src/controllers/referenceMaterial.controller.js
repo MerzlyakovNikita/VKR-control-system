@@ -5,7 +5,7 @@ import fs from 'fs'
 
 export const getAllMaterials = async (req, res) => {
   try {
-    const result = await db.query(`SELECT * FROM reference_materials ORDER BY published_at DESC`)
+    const result = await db.query(`SELECT * FROM reference_materials ORDER BY name ASC`)
 
     res.json(result.rows)
   } catch (e) {
@@ -21,6 +21,7 @@ export const createMultipleMaterials = async (req, res) => {
     }
 
     const files = req.files
+    const { folder_id } = req.body
 
     if (!files || files.length === 0) {
       return res.status(400).json({ message: 'Файлы не загружены' })
@@ -32,9 +33,14 @@ export const createMultipleMaterials = async (req, res) => {
     for (const file of files) {
       const originalName = iconv.decode(Buffer.from(file.originalname, 'latin1'), 'utf8')
 
-      const exists = await db.query(`SELECT id FROM reference_materials WHERE name = $1`, [
-        originalName,
-      ])
+      const exists = await db.query(
+        `
+        SELECT id FROM reference_materials
+        WHERE name = $1
+        AND folder_id IS NOT DISTINCT FROM $2::uuid
+        `,
+        [originalName, folder_id || null],
+      )
 
       if (exists.rowCount > 0) {
         fs.unlinkSync(path.resolve('uploads', file.filename))
@@ -43,10 +49,12 @@ export const createMultipleMaterials = async (req, res) => {
       }
 
       await db.query(
-        `INSERT INTO reference_materials
-         (name, file_name, published_at, created_by)
-         VALUES ($1, $2, NOW(), $3)`,
-        [originalName, file.filename, req.user.id],
+        `
+        INSERT INTO reference_materials
+        (name, file_name, published_at, created_by, folder_id)
+        VALUES ($1, $2, NOW(), $3, $4)
+        `,
+        [originalName, file.filename, req.user.id, folder_id || null],
       )
 
       uploaded.push(originalName)

@@ -10,9 +10,16 @@
 
 .reference-left {
   flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .reference-right {
+  flex: 1;
+}
+
+.materials-container {
   flex: 1;
 }
 
@@ -20,6 +27,7 @@
   margin-top: 10px;
 }
 
+.folders-tree,
 .reference-add-card,
 .materials-container {
   background: #fff;
@@ -28,8 +36,103 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.materials-container {
+.folders-tree {
+  overflow-y: auto;
+}
+
+.folders-tree .material-item {
+  padding: 6px 12px;
+  margin: 2px 6px;
+}
+
+.folders-tree .file-icon {
+  color: orange;
+}
+
+.folders-tree .material-actions {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.folders-tree .material-item:hover .material-actions {
+  opacity: 1;
+}
+
+.folders-header {
+  padding: 0 8px;
+  margin-top: 6px;
+}
+
+.folders-tree .ant-tree {
+  background: transparent;
+}
+
+.folders-tree .ant-tree-treenode {
+  display: flex;
+  align-items: center;
+}
+
+.folders-tree .ant-tree-node-content-wrapper {
+  width: auto !important;
+  padding: 0 !important;
+  pointer-events: none;
+}
+
+.folders-tree .ant-tree-node-content-wrapper:focus {
+  outline: none !important;
+  background: transparent !important;
+}
+
+.folders-tree .ant-tree-node-content-wrapper:hover {
+  background: transparent !important;
+}
+
+.folders-tree .ant-tree-node-selected {
+  background: transparent !important;
+}
+
+.selected-folder {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.folders-tree .material-item {
+  pointer-events: all;
+  width: 100%;
+  margin: 0px;
+}
+
+.folders-tree .ant-tree-switcher {
   height: 100%;
+  display: flex;
+  padding: 7px;
+  margin: 6px 0px 6px 10px;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.45);
+  transition: all 0.2s;
+}
+
+.folders-tree .ant-tree-switcher:hover {
+  background: transparent !important;
+}
+
+.folders-tree .ant-tree-switcher:hover {
+  background: rgba(22, 119, 255, 0.1);
+  color: #1677ff;
+}
+
+.folders-tree .ant-tree-switcher-icon {
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.folders-tree .ant-tree-switcher-icon svg {
+  pointer-events: none;
+}
+
+.folders-tree .ant-tree-indent-unit {
+  width: 16px;
 }
 
 .materials-list {
