@@ -5,9 +5,7 @@ import fs from 'fs'
 
 export const getAllMaterials = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT * FROM reference_materials ORDER BY published_at DESC`
-    )
+    const result = await db.query(`SELECT * FROM reference_materials ORDER BY published_at DESC`)
 
     res.json(result.rows)
   } catch (e) {
@@ -16,7 +14,7 @@ export const getAllMaterials = async (req, res) => {
   }
 }
 
-export const createMultipleMaterials  = async (req, res) => {
+export const createMultipleMaterials = async (req, res) => {
   try {
     if (req.user.role !== 'SECRETARY') {
       return res.status(403).json({ message: 'Нет доступа' })
@@ -32,15 +30,11 @@ export const createMultipleMaterials  = async (req, res) => {
     const skipped = []
 
     for (const file of files) {
-      const originalName = iconv.decode(
-        Buffer.from(file.originalname, 'latin1'),
-        'utf8'
-      )
+      const originalName = iconv.decode(Buffer.from(file.originalname, 'latin1'), 'utf8')
 
-      const exists = await db.query(
-        `SELECT id FROM reference_materials WHERE name = $1`,
-        [originalName]
-      )
+      const exists = await db.query(`SELECT id FROM reference_materials WHERE name = $1`, [
+        originalName,
+      ])
 
       if (exists.rowCount > 0) {
         fs.unlinkSync(path.resolve('uploads', file.filename))
@@ -52,7 +46,7 @@ export const createMultipleMaterials  = async (req, res) => {
         `INSERT INTO reference_materials
          (name, file_name, published_at, created_by)
          VALUES ($1, $2, NOW(), $3)`,
-        [originalName, file.filename, req.user.id]
+        [originalName, file.filename, req.user.id],
       )
 
       uploaded.push(originalName)
@@ -70,10 +64,9 @@ export const createMultipleMaterials  = async (req, res) => {
 
 export const downloadMaterial = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT * FROM reference_materials WHERE id = $1`,
-      [req.params.id]
-    )
+    const result = await db.query(`SELECT * FROM reference_materials WHERE id = $1`, [
+      req.params.id,
+    ])
 
     const file = result.rows[0]
 
@@ -97,10 +90,7 @@ export const deleteMaterial = async (req, res) => {
 
     const { id } = req.params
 
-    const result = await db.query(
-      `SELECT * FROM reference_materials WHERE id = $1`,
-      [id]
-    )
+    const result = await db.query(`SELECT * FROM reference_materials WHERE id = $1`, [id])
 
     const file = result.rows[0]
 
@@ -108,19 +98,13 @@ export const deleteMaterial = async (req, res) => {
       return res.status(404).json({ message: 'Файл не найден' })
     }
 
-    // путь к файлу
     const filePath = path.resolve('uploads', file.file_name)
 
-    // удаляем файл с диска
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath)
     }
 
-    // удаляем из БД
-    await db.query(
-      `DELETE FROM reference_materials WHERE id = $1`,
-      [id]
-    )
+    await db.query(`DELETE FROM reference_materials WHERE id = $1`, [id])
 
     res.json({ message: 'Файл удалён' })
   } catch (e) {

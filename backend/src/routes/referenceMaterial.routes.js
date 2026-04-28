@@ -5,7 +5,7 @@ import {
   getAllMaterials,
   createMultipleMaterials,
   downloadMaterial,
-  deleteMaterial
+  deleteMaterial,
 } from '../controllers/referenceMaterial.controller.js'
 
 const router = Router()

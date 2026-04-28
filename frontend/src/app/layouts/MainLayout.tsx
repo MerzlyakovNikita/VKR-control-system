@@ -2,6 +2,7 @@ import { Layout, Menu, Dropdown, Avatar } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { getRole } from '../../shared/lib/auth'
+import './MainLayout.css'
 
 const { Header, Sider, Content } = Layout
 
@@ -39,48 +40,24 @@ export const MainLayout = () => {
   ]
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        width={80}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          paddingTop: 10,
-        }}
-      >
+    <Layout className="main-layout">
+      <Sider width={80} className="main-sider">
         <Dropdown menu={{ items: profileMenu }}>
-          <Avatar
-            size={44}
-            style={{
-              cursor: 'pointer',
-              backgroundColor: '#1677ff',
-            }}
-            icon={<UserOutlined />}
-          />
+          <Avatar size={44} className="main-avatar" icon={<UserOutlined />} />
         </Dropdown>
       </Sider>
 
       <Layout>
-        <Header
-          style={{
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 16px',
-          }}
-        >
+        <Header className="main-header">
           <Menu
             mode="horizontal"
             selectedKeys={[`/${location.pathname.split('/')[1]}`]}
             onClick={(e) => navigate(e.key)}
-            items={[
-              { key: '/documents', label: 'Справочный материал' },
-            ]}
+            items={[{ key: '/documents', label: 'Справочный материал' }]}
           />
         </Header>
 
-        <Content style={{ margin: 16 }}>
+        <Content className="main-content">
           <Outlet />
         </Content>
       </Layout>

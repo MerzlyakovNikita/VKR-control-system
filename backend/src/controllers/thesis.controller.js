@@ -2,10 +2,7 @@ import { db } from '../db/index.js'
 
 export const getMyThesis = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT * FROM thesis WHERE student_id = $1`,
-      [req.user.id]
-    )
+    const result = await db.query(`SELECT * FROM thesis WHERE student_id = $1`, [req.user.id])
 
     res.json(result.rows[0] || null)
   } catch (e) {
@@ -16,21 +13,13 @@ export const getMyThesis = async (req, res) => {
 
 export const saveThesis = async (req, res) => {
   try {
-    const {
-      topic,
-      practice_place,
-      company_supervisor_name,
-      supervisor_name
-    } = req.body
+    const { topic, practice_place, company_supervisor_name, supervisor_name } = req.body
 
     if (!topic) {
       return res.status(400).json({ message: 'Тема обязательна' })
     }
 
-    const existing = await db.query(
-      `SELECT id FROM thesis WHERE student_id = $1`,
-      [req.user.id]
-    )
+    const existing = await db.query(`SELECT id FROM thesis WHERE student_id = $1`, [req.user.id])
 
     if (existing.rowCount > 0) {
       const result = await db.query(
@@ -43,13 +32,7 @@ export const saveThesis = async (req, res) => {
              updated_at = NOW()
          WHERE student_id = $5
          RETURNING *`,
-        [
-          topic,
-          practice_place,
-          company_supervisor_name,
-          supervisor_name,
-          req.user.id
-        ]
+        [topic, practice_place, company_supervisor_name, supervisor_name, req.user.id],
       )
 
       return res.json(result.rows[0])
@@ -70,15 +53,7 @@ export const saveThesis = async (req, res) => {
        )
        VALUES ($1,$2,$3,$4,$5,$6,NOW(),NOW(),$7)
        RETURNING *`,
-      [
-        topic,
-        practice_place,
-        company_supervisor_name,
-        supervisor_name,
-        'DRAFT',
-        1,
-        req.user.id
-      ]
+      [topic, practice_place, company_supervisor_name, supervisor_name, 'DRAFT', 1, req.user.id],
     )
 
     res.json(result.rows[0])

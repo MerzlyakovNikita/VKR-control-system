@@ -1,4 +1,4 @@
-import { Form, Input, Button, Card, message} from 'antd'
+import { Form, Input, Button, Card, message } from 'antd'
 import { api } from '../../shared/api/axios'
 import { useNavigate } from 'react-router-dom'
 import './AuthPage.css'

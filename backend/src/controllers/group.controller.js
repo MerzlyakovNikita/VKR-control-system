@@ -2,15 +2,8 @@ import { db } from '../db/index.js'
 
 export const createGroup = async (req, res) => {
   try {
-    const {
-      name,
-      direction,
-      direction_code,
-      profile,
-      education_form,
-      education_level,
-      course
-    } = req.body
+    const { name, direction, direction_code, profile, education_form, education_level, course } =
+      req.body
 
     if (req.user.role !== 'SECRETARY') {
       return res.status(403).json({ error: 'Нет доступа' })
@@ -33,7 +26,7 @@ export const createGroup = async (req, res) => {
       (name, direction, direction_code, profile, education_form, education_level, course)
       VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING *`,
-      [name, direction, direction_code, profile, education_form, education_level, course]
+      [name, direction, direction_code, profile, education_form, education_level, course],
     )
 
     res.json(result.rows[0])
@@ -45,9 +38,7 @@ export const createGroup = async (req, res) => {
 
 export const getGroups = async (req, res) => {
   try {
-    const result = await db.query(
-      'SELECT * FROM groups ORDER BY name ASC'
-    )
+    const result = await db.query('SELECT * FROM groups ORDER BY name ASC')
 
     res.json(result.rows)
   } catch (err) {
@@ -60,15 +51,8 @@ export const updateGroup = async (req, res) => {
   try {
     const { id } = req.params
 
-    const {
-      name,
-      direction,
-      direction_code,
-      profile,
-      education_form,
-      education_level,
-      course
-    } = req.body
+    const { name, direction, direction_code, profile, education_form, education_level, course } =
+      req.body
 
     if (req.user.role !== 'SECRETARY') {
       return res.status(403).json({ error: 'Нет доступа' })
@@ -98,7 +82,7 @@ export const updateGroup = async (req, res) => {
          course = $7
        WHERE id = $8
        RETURNING *`,
-      [name, direction, direction_code, profile, education_form, education_level, course, id]
+      [name, direction, direction_code, profile, education_form, education_level, course, id],
     )
 
     if (result.rowCount === 0) {

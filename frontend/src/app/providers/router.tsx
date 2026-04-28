@@ -33,7 +33,7 @@ export const AppRouter = () => {
             </ProtectedRoute>
           }
         />
-        
+
         <Route path="groups/:id" element={<div>Страница группы</div>} />
 
         <Route path="documents" element={<ReferenceMaterialsPage />} />

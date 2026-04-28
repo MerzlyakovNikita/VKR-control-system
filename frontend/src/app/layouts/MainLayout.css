@@ -1,0 +1,26 @@
+.main-layout {
+  min-height: 100vh;
+}
+
+.main-sider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.main-avatar {
+  cursor: pointer;
+  background-color: #1677ff;
+}
+
+.main-header {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.main-content {
+  margin: 16px;
+}

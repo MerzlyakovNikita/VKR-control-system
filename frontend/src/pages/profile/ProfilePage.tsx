@@ -131,7 +131,9 @@ export default function ProfilePage() {
           <div className="left-block">
             <div className="info-row">
               <div className="label">ФИО</div>
-              <div className="value">{user.last_name} {user.first_name} {user.middle_name}</div>
+              <div className="value">
+                {user.last_name} {user.first_name} {user.middle_name}
+              </div>
             </div>
 
             <div className="info-row">
@@ -194,7 +196,8 @@ export default function ProfilePage() {
               <div className="info-row">
                 <div className="label">Обучение</div>
                 <div className="value">
-                  {selectedGroup.education_level}, {selectedGroup.course} курс, {selectedGroup.education_form}
+                  {selectedGroup.education_level}, {selectedGroup.course} курс,{' '}
+                  {selectedGroup.education_form}
                 </div>
               </div>
             </div>
@@ -254,9 +257,7 @@ export default function ProfilePage() {
                 )}
 
                 {hasThesis && !isEditing && (
-                  <Button onClick={() => setIsEditing(true)}>
-                    Редактировать
-                  </Button>
+                  <Button onClick={() => setIsEditing(true)}>Редактировать</Button>
                 )}
 
                 {hasThesis && isEditing && (

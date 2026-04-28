@@ -1,8 +1,4 @@
-export type Role =
-  | 'STUDENT'
-  | 'TEACHER'
-  | 'HEAD'
-  | 'SECRETARY'
+export type Role = 'STUDENT' | 'TEACHER' | 'HEAD' | 'SECRETARY'
 
 export interface User {
   id: string

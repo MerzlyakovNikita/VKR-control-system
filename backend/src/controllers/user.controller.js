@@ -14,7 +14,7 @@ export const getMe = async (req, res) => {
         group_id
        FROM users
        WHERE id = $1`,
-      [req.user.id]
+      [req.user.id],
     )
 
     res.json(result.rows[0])
@@ -34,7 +34,7 @@ export const updateMe = async (req, res) => {
       WHERE id = $2
       RETURNING id, group_id
       `,
-      [group_id, req.user.id]
+      [group_id, req.user.id],
     )
 
     res.json(result.rows[0])
