@@ -17,6 +17,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 8px;
 }
 
 .group-card-title {
@@ -27,10 +28,22 @@
   opacity: 1;
 }
 
+.group-card:hover .delete-icon {
+  opacity: 1;
+}
+
+.delete-icon,
 .edit-icon {
   opacity: 0;
   cursor: pointer;
   transition: 0.2s;
+}
+
+.edit-icon:hover {
+  color: #1677ff;
+}
+.delete-icon:hover {
+  color: #ff4d4f;
 }
 
 .group-card .ant-card-body {
@@ -40,12 +53,6 @@
 .right-panel {
   position: sticky;
   top: 20px;
-}
-
-.group-card-actions {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
 }
 
 .add-button {

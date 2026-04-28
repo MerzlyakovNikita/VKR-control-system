@@ -95,3 +95,20 @@ export const updateGroup = async (req, res) => {
     res.status(500).json({ error: 'Ошибка обновления группы' })
   }
 }
+
+export const deleteGroup = async (req, res) => {
+  try {
+    if (req.user.role !== 'SECRETARY') {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+
+    const { id } = req.params
+
+    await db.query('DELETE FROM groups WHERE id = $1', [id])
+
+    res.json({ message: 'Группа удалена' })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка удаления группы' })
+  }
+}

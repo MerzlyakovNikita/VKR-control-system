@@ -3,7 +3,7 @@ import { Button, Modal, Form, Input, Select, Card, message, Row, Col } from 'ant
 import { api } from '../../shared/api/axios'
 import './GroupsPage.css'
 import { useNavigate } from 'react-router-dom'
-import { EditOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 
 const { Search } = Input
 
@@ -88,11 +88,32 @@ export default function GroupsPage() {
     })
   }
 
+  const confirmDeleteGroup = (groupId: string) => {
+    Modal.confirm({
+      title: 'Удалить группу?',
+      content: 'У студентов этой группы она будет сброшена',
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+
+      onOk: async () => {
+        try {
+          await api.delete(`/groups/${groupId}`)
+
+          message.success('Группа удалена')
+          loadGroups()
+        } catch {
+          message.error('Ошибка удаления')
+        }
+      },
+    })
+  }
+
   return (
     <div className="groups-page">
       <h2>Группы</h2>
 
-      <Row gutter={16} style={{ marginTop: 20 }}>
+      <Row gutter={16} style={{ marginTop: 10 }}>
         <Col span={16}>
           <Row gutter={[16, 16]}>
             {filteredGroups.map((g) => (
@@ -120,6 +141,13 @@ export default function GroupsPage() {
                     </div>
 
                     <EditOutlined className="edit-icon" onClick={() => handleEdit(g)} />
+                    <DeleteOutlined
+                      className="delete-icon"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        confirmDeleteGroup(g.id)
+                      }}
+                    />
                   </div>
                   {g.profile && (
                     <>
@@ -162,7 +190,7 @@ export default function GroupsPage() {
             label="Название группы"
             rules={[{ required: true, message: 'Введите название группы' }]}
           >
-            <Input placeholder="АСУ1-21-1б" />
+            <Input placeholder="РИС-22-2б" />
           </Form.Item>
 
           <Form.Item
