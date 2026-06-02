@@ -1,24 +1,31 @@
 import { useEffect, useState } from 'react'
-import { Button, Modal, Form, Input, Select, Card, message, Row, Col } from 'antd'
+import { Button, Modal, Form, Input, Select, Card, message, Row, Col, Empty } from 'antd'
 import { api } from '../../shared/api/axios'
 import './GroupsPage.css'
 import { useNavigate } from 'react-router-dom'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, SelectOutlined } from '@ant-design/icons'
+import { getUser, hasRole } from '../../shared/lib/auth'
+import {
+  EDUCATION_FORMS,
+  EDUCATION_FORM_LABELS,
+  EDUCATION_LEVEL_LABELS,
+  getCourseByForm,
+} from '../../shared/lib/constants'
 
 const { Search } = Input
 
 export default function GroupsPage() {
+  const currentUser = getUser()
+  const isSecretary = hasRole('SECRETARY')
+
   const [groups, setGroups] = useState<any[]>([])
+  const [directions, setDirections] = useState<any[]>([])
+  const [profiles, setProfiles] = useState<any[]>([])
   const [open, setOpen] = useState(false)
   const [form] = Form.useForm()
   const [search, setSearch] = useState('')
-  const navigate = useNavigate()
   const [editingGroup, setEditingGroup] = useState<any | null>(null)
-
-  const educationForms = ['очная', 'заочная', 'очно-заочная']
-  const educationLevels = ['бакалавриат', 'магистратура']
-
-  const [courses, setCourses] = useState<number[]>([1, 2, 3, 4])
+  const navigate = useNavigate()
 
   const loadGroups = async () => {
     try {
@@ -29,34 +36,49 @@ export default function GroupsPage() {
     }
   }
 
+  const loadDirections = async () => {
+    try {
+      const { data } = await api.get('/directions')
+      setDirections(data)
+    } catch {
+      message.error('Ошибка загрузки направлений')
+    }
+  }
+
   useEffect(() => {
     loadGroups()
+    loadDirections()
   }, [])
 
-  const handleLevelChange = (value: string) => {
-    if (value === 'магистратура') {
-      setCourses([1, 2])
-    } else {
-      setCourses([1, 2, 3, 4])
+  const handleDirectionChange = async (directionId: number) => {
+    form.setFieldsValue({ profile_id: undefined })
+    setProfiles([])
+    try {
+      const { data } = await api.get(`/directions/${directionId}/profiles`)
+      setProfiles(data)
+    } catch {
+      message.error('Ошибка загрузки профилей')
     }
-    form.setFieldValue('course', undefined)
   }
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
+      const direction = directions.find((d) => d.id === values.direction_id)
+      const course = getCourseByForm(values.education_form, direction?.education_level)
+      const payload = { ...values, course }
 
       if (editingGroup) {
-        await api.put(`/groups/${editingGroup.id}`, values)
-        message.success('Информация о группе изменена')
+        await api.put(`/groups/${editingGroup.id}`, payload)
+        message.success('Информация об учебной группе изменена')
       } else {
-        await api.post('/groups', values)
-        message.success('Группа добавлена')
+        await api.post('/groups', payload)
+        message.success('Учебная группа добавлена')
       }
-
       setOpen(false)
       setEditingGroup(null)
       form.resetFields()
+      setProfiles([])
       loadGroups()
     } catch (e) {
       console.error(e)
@@ -67,40 +89,35 @@ export default function GroupsPage() {
     setOpen(false)
     setEditingGroup(null)
     form.resetFields()
+    setProfiles([])
   }
 
-  const filteredGroups = groups.filter((g) => {
-    const value = search.toLowerCase()
-
-    return (
-      g.name.toLowerCase().includes(value) ||
-      g.direction.toLowerCase().includes(value) ||
-      g.direction_code.toLowerCase().includes(value)
-    )
-  })
-
-  const handleEdit = (group: any) => {
+  const handleEdit = async (group: any) => {
     setEditingGroup(group)
     setOpen(true)
-
+    try {
+      const { data } = await api.get(`/directions/${group.direction_id}/profiles`)
+      setProfiles(data)
+    } catch {}
     form.setFieldsValue({
-      ...group,
+      name: group.name,
+      direction_id: group.direction_id,
+      profile_id: group.profile_id,
+      education_form: group.education_form,
     })
   }
 
   const confirmDeleteGroup = (groupId: string) => {
     Modal.confirm({
-      title: 'Удалить группу?',
-      content: 'У студентов этой группы она будет сброшена',
+      title: 'Удалить учебную группу?',
+      content: 'Все студенты этой учебной группы также будут удалены',
       okText: 'Удалить',
       okType: 'danger',
       cancelText: 'Отмена',
-
       onOk: async () => {
         try {
           await api.delete(`/groups/${groupId}`)
-
-          message.success('Группа удалена')
+          message.success('Учебная группа удалена')
           loadGroups()
         } catch {
           message.error('Ошибка удаления')
@@ -109,60 +126,69 @@ export default function GroupsPage() {
     })
   }
 
+  const filteredGroups = groups.filter((g) => {
+    const value = search.toLowerCase()
+    return (
+      g.name.toLowerCase().includes(value) ||
+      (g.direction_name || '').toLowerCase().includes(value) ||
+      (g.direction_code || '').toLowerCase().includes(value)
+    )
+  })
+
   return (
     <div className="groups-page">
-      <h2>Группы</h2>
+      <h2>Учебные группы</h2>
 
       <Row gutter={16} style={{ marginTop: 10 }}>
-        <Col span={16}>
-          <Row gutter={[16, 16]}>
-            {filteredGroups.map((g) => (
-              <Col span={12} key={g.id}>
-                <Card
-                  className="group-card"
-                  actions={[
-                    <Button
-                      type="link"
-                      className="open-button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate(`/groups/${g.id}`)
-                      }}
-                    >
-                      Открыть
-                    </Button>,
-                  ]}
-                >
-                  <div className="group-card-header">
-                    <div className="group-card-title">
-                      <b>
-                        {g.name} ({g.direction_code})
-                      </b>{' '}
-                      — {g.direction}
+        <Col span={19}>
+          {filteredGroups.length === 0 ? (
+            <Empty description="Учебные группы не добавлены" />
+          ) : (
+            <Row gutter={[16, 16]}>
+              {filteredGroups.map((g) => (
+                <Col span={8} key={g.id}>
+                  <Card className="group-card">
+                    <div className="group-card-header">
+                      <div className="group-card-title">
+                        <b>{g.name}</b>
+                        <div className="group-card-direction">
+                          {g.direction_code} {g.direction_name}
+                        </div>
+                      </div>
+                      <div className="group-card-icons">
+                        <SelectOutlined
+                          className="navigate-icon"
+                          onClick={() => navigate(`/theses?group=${encodeURIComponent(g.name)}`)}
+                        />
+                        {(isSecretary || g.created_by === currentUser?.id) && (
+                          <>
+                            <EditOutlined className="edit-icon" onClick={() => handleEdit(g)} />
+                            <DeleteOutlined
+                              className="delete-icon"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                confirmDeleteGroup(g.id)
+                              }}
+                            />
+                          </>
+                        )}
+                      </div>
                     </div>
-
-                    <EditOutlined className="edit-icon" onClick={() => handleEdit(g)} />
-                    <DeleteOutlined
-                      className="delete-icon"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        confirmDeleteGroup(g.id)
-                      }}
-                    />
-                  </div>
-                  {g.profile && (
-                    <>
-                      Профиль: {g.profile} <br />
-                    </>
-                  )}
-                  {g.education_level}, {g.course} курс, {g.education_form}
-                </Card>
-              </Col>
-            ))}
-          </Row>
+                    {g.profile_name && (
+                      <div className="group-card-meta">Профиль: {g.profile_name}</div>
+                    )}
+                    <div className="group-card-meta">
+                      {EDUCATION_LEVEL_LABELS[g.education_level] || g.education_level}, {g.course}{' '}
+                      курс, {EDUCATION_FORM_LABELS[g.education_form] || g.education_form}
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
         </Col>
 
-        <Col span={8} className="right-panel">
+        <Col span={5} className="right-panel">
           <Card title="Управление">
             <Search
               placeholder="Поиск группы..."
@@ -170,7 +196,6 @@ export default function GroupsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value.trimStart())}
             />
-
             <Button type="primary" style={{ marginTop: 20 }} onClick={() => setOpen(true)}>
               Добавить группу
             </Button>
@@ -184,6 +209,7 @@ export default function GroupsPage() {
         onOk={handleSubmit}
         okText="Сохранить"
         cancelText="Отмена"
+        title={editingGroup ? 'Редактировать учебную группу' : 'Добавить учебную группу'}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -195,27 +221,27 @@ export default function GroupsPage() {
           </Form.Item>
 
           <Form.Item
-            name="direction"
-            label="Направление"
-            rules={[{ required: true, message: 'Введите направление' }]}
+            name="direction_id"
+            label="Направление подготовки"
+            rules={[{ required: true, message: 'Выберите направление' }]}
           >
-            <Input />
+            <Select
+              placeholder="Выберите направление"
+              onChange={handleDirectionChange}
+              options={directions.map((d) => ({
+                label: `${d.code} — ${d.name}`,
+                value: d.id,
+              }))}
+            />
           </Form.Item>
 
-          <Form.Item
-            name="direction_code"
-            label="Код направления"
-            rules={[{ required: true, message: 'Введите код направления' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            name="profile"
-            label="Профиль"
-            rules={[{ required: true, message: 'Введите профиль' }]}
-          >
-            <Input />
+          <Form.Item name="profile_id" label="Профиль">
+            <Select
+              placeholder="Выберите профиль"
+              allowClear
+              disabled={profiles.length === 0}
+              options={profiles.map((p) => ({ label: p.name, value: p.id }))}
+            />
           </Form.Item>
 
           <Form.Item
@@ -225,38 +251,9 @@ export default function GroupsPage() {
           >
             <Select
               placeholder="Выберите форму"
-              options={educationForms.map((f) => ({
-                label: f,
+              options={EDUCATION_FORMS.map((f) => ({
+                label: EDUCATION_FORM_LABELS[f],
                 value: f,
-              }))}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="education_level"
-            label="Уровень образования"
-            rules={[{ required: true, message: 'Выберите уровень образования' }]}
-          >
-            <Select
-              placeholder="Выберите уровень"
-              onChange={handleLevelChange}
-              options={educationLevels.map((l) => ({
-                label: l,
-                value: l,
-              }))}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="course"
-            label="Курс"
-            rules={[{ required: true, message: 'Выберите курс' }]}
-          >
-            <Select
-              placeholder="Выберите курс"
-              options={courses.map((c) => ({
-                label: c,
-                value: c,
               }))}
             />
           </Form.Item>

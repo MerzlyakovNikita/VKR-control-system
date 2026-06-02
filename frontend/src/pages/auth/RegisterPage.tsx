@@ -9,14 +9,10 @@ export default function RegisterPage() {
   const onFinish = async (values: any) => {
     try {
       const { data } = await api.post('/auth/register', values)
-
-      localStorage.setItem('token', data.token)
-
-      message.success('Успешная регистрация')
-
-      navigate('/profile')
+      message.success(data.message)
+      navigate('/login')
     } catch (e: any) {
-      message.error(e.response?.data?.message || 'Ошибка регистрации')
+      message.error(e.response?.data?.message || 'Ошибка отправки заявки')
     }
   }
 
@@ -24,11 +20,19 @@ export default function RegisterPage() {
     <div className="auth-container">
       <Card title="Регистрация" className="auth-card">
         <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item label="Фамилия" name="lastName" required>
+          <Form.Item
+            label="Фамилия"
+            name="lastName"
+            rules={[{ required: true, message: 'Введите фамилию' }]}
+          >
             <Input />
           </Form.Item>
 
-          <Form.Item label="Имя" name="firstName" required>
+          <Form.Item
+            label="Имя"
+            name="firstName"
+            rules={[{ required: true, message: 'Введите имя' }]}
+          >
             <Input />
           </Form.Item>
 
@@ -36,7 +40,14 @@ export default function RegisterPage() {
             <Input />
           </Form.Item>
 
-          <Form.Item label="Email" name="email" required>
+          <Form.Item
+            label="Email"
+            name="email"
+            rules={[
+              { required: true, message: 'Введите email' },
+              { type: 'email', message: 'Некорректный email' },
+            ]}
+          >
             <Input />
           </Form.Item>
 
@@ -44,12 +55,23 @@ export default function RegisterPage() {
             <Input />
           </Form.Item>
 
-          <Form.Item label="Пароль" name="password" required>
+          <Form.Item
+            label="Пароль"
+            name="password"
+            rules={[
+              { required: true, message: 'Введите пароль' },
+              { min: 6, message: 'Минимум 6 символов' },
+            ]}
+          >
             <Input.Password />
           </Form.Item>
 
           <Button type="primary" htmlType="submit" block>
-            Зарегистрироваться
+            Отправить заявку
+          </Button>
+
+          <Button type="link" block onClick={() => navigate('/login')} style={{ marginTop: 8 }}>
+            Уже есть аккаунт? Войти
           </Button>
         </Form>
       </Card>

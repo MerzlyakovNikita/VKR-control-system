@@ -4,8 +4,8 @@ import LoginPage from '../../pages/auth/LoginPage'
 import RegisterPage from '../../pages/auth/RegisterPage'
 import ProfilePage from '../../pages/profile/ProfilePage'
 import GroupsPage from '../../pages/secretary/GroupsPage'
-import GroupPage from '../../pages/secretary/GroupPage'
-import ReferenceMaterialsPage from '../../pages/reference/ReferenceMaterialsPage'
+import ThesesPage from '../../pages/theses/ThesesPage'
+import RegistrationRequestsPage from '../../pages/secretary/RegistrationRequestsPage'
 import { ProtectedRoute } from '../providers/ProtectedRoute'
 
 export const AppRouter = () => {
@@ -29,15 +29,29 @@ export const AppRouter = () => {
         <Route
           path="groups"
           element={
-            <ProtectedRoute roles={['SECRETARY']}>
+            <ProtectedRoute roles={['SECRETARY', 'PRACTICE_SUPERVISOR']}>
               <GroupsPage />
             </ProtectedRoute>
           }
         />
 
-        <Route path="groups/:id" element={<GroupPage />} />
+        <Route
+          path="theses"
+          element={
+            <ProtectedRoute>
+              <ThesesPage />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="documents" element={<ReferenceMaterialsPage />} />
+        <Route
+          path="requests/registration"
+          element={
+            <ProtectedRoute roles={['SECRETARY']}>
+              <RegistrationRequestsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
     </Routes>
   )

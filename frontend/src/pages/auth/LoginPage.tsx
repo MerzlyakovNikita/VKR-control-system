@@ -25,17 +25,29 @@ export default function LoginPage() {
   return (
     <div className="auth-container">
       <Card title="Авторизация" className="auth-card">
-        <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item label="Email" name="email" required>
+        <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+          <Form.Item
+            label="Email"
+            name="email"
+            rules={[{ required: true, message: 'Введите email' }]}
+          >
             <Input />
           </Form.Item>
 
-          <Form.Item label="Пароль" name="password" required>
+          <Form.Item
+            label="Пароль"
+            name="password"
+            rules={[{ required: true, message: 'Введите пароль' }]}
+          >
             <Input.Password />
           </Form.Item>
 
           <Button type="primary" htmlType="submit" block>
             Войти
+          </Button>
+
+          <Button type="link" block onClick={() => navigate('/register')} style={{ marginTop: 8 }}>
+            Нет аккаунта? Зарегистрироваться
           </Button>
         </Form>
       </Card>

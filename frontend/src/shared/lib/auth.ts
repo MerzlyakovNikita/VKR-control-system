@@ -3,8 +3,8 @@ export const getUser = () => {
   return raw ? JSON.parse(raw) : null
 }
 
-export const getRole = () => {
-  return getUser()?.role
+export const hasRole = (role: string): boolean => {
+  return getUser()?.roles?.includes(role) || false
 }
 
 export const isAuthenticated = () => {

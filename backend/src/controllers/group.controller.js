@@ -2,31 +2,28 @@ import { db } from '../db/index.js'
 
 export const createGroup = async (req, res) => {
   try {
-    const { name, direction, direction_code, profile, education_form, education_level, course } =
-      req.body
-
-    if (req.user.role !== 'SECRETARY') {
+    const isSecretary = req.user.roles?.includes('SECRETARY')
+    const isPracticeSupervisor = req.user.roles?.includes('PRACTICE_SUPERVISOR')
+    if (!isSecretary && !isPracticeSupervisor) {
       return res.status(403).json({ error: 'Нет доступа' })
     }
 
-    if (
-      !name ||
-      !direction ||
-      !direction_code ||
-      !profile ||
-      !education_form ||
-      !education_level ||
-      !course
-    ) {
-      return res.status(400).json({ error: 'Все поля обязательны' })
+    const { name, direction_id, profile_id, education_form, course } = req.body
+
+    if (!name || !direction_id || !education_form || !course) {
+      return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
+    }
+
+    const existing = await db.query('SELECT id FROM groups WHERE name = $1', [name])
+    if (existing.rowCount > 0) {
+      return res.status(400).json({ error: 'Группа с таким названием уже существует' })
     }
 
     const result = await db.query(
-      `INSERT INTO groups 
-      (name, direction, direction_code, profile, education_form, education_level, course)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      RETURNING *`,
-      [name, direction, direction_code, profile, education_form, education_level, course],
+      `INSERT INTO groups (created_by, direction_id, profile_id, education_form, name, course)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [req.user.id, direction_id, profile_id || null, education_form, name, course],
     )
 
     res.json(result.rows[0])
@@ -38,8 +35,24 @@ export const createGroup = async (req, res) => {
 
 export const getGroups = async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM groups ORDER BY name ASC')
-
+    const result = await db.query(`
+      SELECT
+        g.id,
+        g.name,
+        g.course,
+        g.education_form,
+        g.direction_id,
+        g.profile_id,
+        g.created_by,
+        d.code  AS direction_code,
+        d.name  AS direction_name,
+        d.education_level,
+        p.name  AS profile_name
+      FROM groups g
+      JOIN directions d ON d.id = g.direction_id
+      LEFT JOIN profiles p ON p.id = g.profile_id
+      ORDER BY g.name ASC
+    `)
     res.json(result.rows)
   } catch (err) {
     console.error(err)
@@ -49,40 +62,33 @@ export const getGroups = async (req, res) => {
 
 export const updateGroup = async (req, res) => {
   try {
-    const { id } = req.params
-
-    const { name, direction, direction_code, profile, education_form, education_level, course } =
-      req.body
-
-    if (req.user.role !== 'SECRETARY') {
+    const isSecretary = req.user.roles?.includes('SECRETARY')
+    const isPracticeSupervisor = req.user.roles?.includes('PRACTICE_SUPERVISOR')
+    if (!isSecretary && !isPracticeSupervisor) {
       return res.status(403).json({ error: 'Нет доступа' })
     }
 
-    if (
-      !name ||
-      !direction ||
-      !direction_code ||
-      !profile ||
-      !education_form ||
-      !education_level ||
-      !course
-    ) {
-      return res.status(400).json({ error: 'Все поля обязательны' })
+    const { id } = req.params
+
+    if (!isSecretary) {
+      const owner = await db.query('SELECT created_by FROM groups WHERE id = $1', [id])
+      if (owner.rows[0]?.created_by !== req.user.id) {
+        return res.status(403).json({ error: 'Нет доступа' })
+      }
+    }
+    const { name, direction_id, profile_id, education_form, course } = req.body
+
+    if (!name || !direction_id || !education_form || !course) {
+      return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
     }
 
     const result = await db.query(
       `UPDATE groups
-       SET 
-         name = $1,
-         direction = $2,
-         direction_code = $3,
-         profile = $4,
-         education_form = $5,
-         education_level = $6,
-         course = $7
-       WHERE id = $8
+       SET name = $1, direction_id = $2, profile_id = $3,
+           education_form = $4, course = $5
+       WHERE id = $6
        RETURNING *`,
-      [name, direction, direction_code, profile, education_form, education_level, course, id],
+      [name, direction_id, profile_id || null, education_form, course, id],
     )
 
     if (result.rowCount === 0) {
@@ -98,14 +104,20 @@ export const updateGroup = async (req, res) => {
 
 export const deleteGroup = async (req, res) => {
   try {
-    if (req.user.role !== 'SECRETARY') {
+    const isSecretary = req.user.roles?.includes('SECRETARY')
+    const isPracticeSupervisor = req.user.roles?.includes('PRACTICE_SUPERVISOR')
+    if (!isSecretary && !isPracticeSupervisor) {
       return res.status(403).json({ message: 'Нет доступа' })
     }
 
-    const { id } = req.params
+    if (!isSecretary) {
+      const owner = await db.query('SELECT created_by FROM groups WHERE id = $1', [req.params.id])
+      if (owner.rows[0]?.created_by !== req.user.id) {
+        return res.status(403).json({ message: 'Нет доступа' })
+      }
+    }
 
-    await db.query('DELETE FROM groups WHERE id = $1', [id])
-
+    await db.query('DELETE FROM groups WHERE id = $1', [req.params.id])
     res.json({ message: 'Группа удалена' })
   } catch (e) {
     console.error(e)
@@ -113,46 +125,20 @@ export const deleteGroup = async (req, res) => {
   }
 }
 
-export const getGroupStudents = async (req, res) => {
-  try {
-    const { id } = req.params
-
-    const result = await db.query(
-      `
-      SELECT 
-        u.id,
-        u.last_name,
-        u.first_name,
-        u.middle_name,
-        u.phone,
-        u.email,
-
-        t.topic,
-        t.supervisor_name,
-        t.practice_place,
-        t.company_supervisor_name
-
-      FROM users u
-      LEFT JOIN thesis t ON t.student_id = u.id
-
-      WHERE u.group_id = $1
-      ORDER BY u.last_name
-      `,
-      [id],
-    )
-
-    res.json(result.rows)
-  } catch (e) {
-    console.error(e)
-    res.status(500).json({ message: 'Ошибка получения данных группы' })
-  }
-}
-
 export const getGroupById = async (req, res) => {
   try {
-    const { id } = req.params
-
-    const result = await db.query('SELECT name FROM groups WHERE id = $1', [id])
+    const result = await db.query(
+      `
+      SELECT g.id, g.name, g.course, g.education_form,
+             d.code AS direction_code, d.name AS direction_name, d.education_level,
+             p.name AS profile_name
+      FROM groups g
+      JOIN directions d ON d.id = g.direction_id
+      LEFT JOIN profiles p ON p.id = g.profile_id
+      WHERE g.id = $1
+    `,
+      [req.params.id],
+    )
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Группа не найдена' })
@@ -162,5 +148,39 @@ export const getGroupById = async (req, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Ошибка получения группы' })
+  }
+}
+
+export const getGroupStudents = async (req, res) => {
+  try {
+    const result = await db.query(
+      `
+      SELECT
+        s.id,
+        s.last_name,
+        s.first_name,
+        s.middle_name,
+        s.phone,
+        s.email,
+        v.topic,
+        v.status,
+        v.practice_place,
+        v.company_supervisor,
+        u.last_name  AS supervisor_last_name,
+        u.first_name AS supervisor_first_name,
+        u.middle_name AS supervisor_middle_name
+      FROM students s
+      LEFT JOIN vkr v ON v.student_id = s.id
+      LEFT JOIN users u ON u.id = v.supervisor_id
+      WHERE s.group_id = $1
+      ORDER BY s.last_name
+    `,
+      [req.params.id],
+    )
+
+    res.json(result.rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка получения данных группы' })
   }
 }

@@ -1,0 +1,222 @@
+.theses-page {
+  padding: 16px;
+}
+
+.theses-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.theses-search {
+  flex: 1;
+}
+
+.ant-table {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.group-header-row td {
+  background: #f0f5ff !important;
+  font-weight: 600;
+  color: #1677ff;
+}
+
+.group-header-label {
+  font-weight: 600;
+}
+
+.row-index {
+  color: #888;
+}
+
+.no-data {
+  color: #bfbfbf;
+}
+
+.fio-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.student-profile-icon {
+  color: #bfbfbf;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.student-profile-icon:hover {
+  color: #1677ff;
+}
+
+.student-profile-modal .ant-modal-body {
+  padding-top: 8px;
+}
+
+.student-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-modal-delete {
+  color: #ff4d4f;
+  cursor: pointer;
+  font-size: 15px;
+  transition: opacity 0.15s;
+}
+
+.student-modal-delete:hover {
+  opacity: 0.7;
+}
+
+.desc-section-title {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 0 6px;
+}
+
+.desc-table {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.desc-row {
+  display: flex;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.desc-row:last-child {
+  border-bottom: none;
+}
+
+.desc-label {
+  background: #fafafa;
+  padding: 8px 12px;
+  width: 210px;
+  min-width: 210px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 13px;
+  border-right: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+}
+
+.desc-value {
+  padding: 7px 12px;
+  flex: 1;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.desc-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.row-edit-icon {
+  opacity: 0;
+  color: #1677ff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.desc-row-editable:hover .row-edit-icon {
+  opacity: 1;
+}
+
+.desc-row-active {
+  background: #f6f9ff;
+}
+
+.desc-edit-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.desc-edit-field .ant-input,
+.desc-edit-field .ant-input-textarea {
+  flex: 1;
+}
+
+.desc-edit-icons {
+  display: flex;
+  gap: 8px;
+  padding-top: 6px;
+  flex-shrink: 0;
+}
+
+.desc-icon-save {
+  color: #52c41a;
+  cursor: pointer;
+  font-size: 15px;
+  transition: opacity 0.15s;
+}
+
+.desc-icon-save:hover {
+  opacity: 0.7;
+}
+
+.desc-icon-cancel {
+  color: #ff4d4f;
+  cursor: pointer;
+  font-size: 15px;
+  transition: opacity 0.15s;
+}
+
+.desc-icon-cancel:hover {
+  opacity: 0.7;
+}
+
+.desc-field-error {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.status-date {
+  color: #888;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.import-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.import-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.import-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.import-required {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+.import-hint {
+  color: #888;
+  font-size: 12px;
+}

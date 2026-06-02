@@ -2,15 +2,25 @@
   padding: 16px;
 }
 
-.groups-list {
-  width: 100%;
-}
-
 .group-card {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
+  cursor: default;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.15s;
+}
+
+.group-card:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.group-card-direction {
+  margin-top: 2px;
+}
+
+.group-card-meta {
+  color: #8c8c8c;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 .group-card-header {
@@ -18,77 +28,45 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .group-card-title {
   flex: 1;
 }
 
-.group-card:hover .edit-icon {
-  opacity: 1;
-}
-
-.group-card:hover .delete-icon {
-  opacity: 1;
-}
-
-.group-card .delete-icon,
-.edit-icon {
+.group-card-icons {
+  display: flex;
+  gap: 12px;
   opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.group-card:hover .group-card-icons {
+  opacity: 1;
+}
+
+.navigate-icon,
+.edit-icon,
+.delete-icon {
   cursor: pointer;
-  transition: 0.2s;
+  transition: color 0.15s;
+}
+
+.navigate-icon:hover {
+  color: #0958d9;
 }
 
 .edit-icon:hover {
   color: #1677ff;
 }
 
-.group-card .ant-card-body {
-  flex: 1;
+.delete-icon:hover {
+  color: #ff4d4f;
 }
 
 .right-panel {
   position: sticky;
   top: 20px;
-}
-
-.add-button {
-  margin-bottom: 10px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-.open-button {
-  width: 100%;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal {
-  background: white;
-  padding: 20px;
-  width: 400px;
-  border-radius: 8px;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.form input,
-.form select {
-  padding: 6px;
 }

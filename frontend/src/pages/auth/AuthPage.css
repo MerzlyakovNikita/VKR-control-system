@@ -1,9 +1,14 @@
 .auth-container {
   display: flex;
   justify-content: center;
-  margin-top: 80px;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f0f2f5;
 }
 
 .auth-card {
   width: 400px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
 }

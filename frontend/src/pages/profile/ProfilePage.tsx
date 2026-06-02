@@ -1,275 +1,261 @@
 import { useEffect, useState } from 'react'
-import { Card, Select, Button, message } from 'antd'
+import { Card, Button, Input, Select, Form, message, Modal } from 'antd'
+import { EditOutlined, SaveOutlined, CloseOutlined, LockOutlined } from '@ant-design/icons'
 import { api } from '../../shared/api/axios'
+import { DEGREE_LABELS, POSITION_LABELS } from '../../shared/lib/constants'
+import { formatPhone } from '../../shared/lib/normalize'
 import './ProfilePage.css'
+
+function hasDegree(position?: string): boolean {
+  return position === 'ASSOCIATE_PROFESSOR' || position === 'PROFESSOR'
+}
+
+function InfoRow({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="info-row">
+      <div className="label">{label}</div>
+      <div className="value">{value || '—'}</div>
+    </div>
+  )
+}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
-  const [groups, setGroups] = useState<any[]>([])
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
-  const [selectedGroup, setSelectedGroup] = useState<any>(null)
-  const [initialGroupId, setInitialGroupId] = useState<string | null>(null)
-  const [thesisForm, setThesisForm] = useState({
-    topic: '',
-    practice_place: '',
-    supervisor_name: '',
-    company_supervisor_name: '',
-  })
   const [isEditing, setIsEditing] = useState(false)
-  const [hasThesis, setHasThesis] = useState(false)
-  const [initialThesis, setInitialThesis] = useState<any>(null)
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
+  const [form] = Form.useForm()
+  const [passwordForm] = Form.useForm()
 
-  const disabled = hasThesis && !isEditing
-
-  const isChanged = () => {
-    return JSON.stringify(thesisForm) !== JSON.stringify(initialThesis)
+  const loadUser = async () => {
+    const { data } = await api.get('/users/me')
+    setUser(data)
   }
 
   useEffect(() => {
     loadUser()
-    loadGroups()
-    loadThesis()
   }, [])
 
-  const loadUser = async () => {
-    const { data } = await api.get('/users/me')
+  const isSecretary = user?.roles?.includes('SECRETARY')
 
-    setUser(data)
-    setSelectedGroupId(data.group_id || null)
-    setInitialGroupId(data.group_id || null)
+  const handleEdit = () => {
+    form.setFieldsValue({
+      last_name: user.last_name,
+      first_name: user.first_name,
+      middle_name: user.middle_name,
+      email: user.email,
+      phone: user.phone,
+      degree: user.degree,
+      position: user.position,
+    })
+    setIsEditing(true)
   }
 
-  const loadGroups = async () => {
-    const { data } = await api.get('/groups')
-
-    setGroups(data)
-  }
-
-  const handleGroupChange = (value: string) => {
-    setSelectedGroupId(value)
-
-    const group = groups.find((g) => g.id === value)
-    setSelectedGroup(group)
-  }
+  const handleCancel = () => setIsEditing(false)
 
   const handleSave = async () => {
     try {
-      if (selectedGroupId === initialGroupId) {
-        return
-      }
-
-      await api.put('/users/me', {
-        group_id: selectedGroupId,
-      })
-      message.success('Группа успешно сохранена')
-
-      setInitialGroupId(selectedGroupId)
-      loadUser()
-    } catch (e) {
-      message.error('Ошибка при сохранении группы')
-    }
-  }
-
-  const loadThesis = async () => {
-    const { data } = await api.get('/thesis/me')
-
-    if (data) {
-      setHasThesis(true)
-
-      const normalized = {
-        topic: data.topic || '',
-        practice_place: data.practice_place || '',
-        supervisor_name: data.supervisor_name || '',
-        company_supervisor_name: data.company_supervisor_name || '',
-      }
-
-      setThesisForm(normalized)
-      setInitialThesis(normalized)
-    }
-  }
-
-  const handleThesisChange = (e: any) => {
-    setThesisForm({
-      ...thesisForm,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleSaveThesis = async () => {
-    try {
-      if (hasThesis && !isChanged()) {
-        setIsEditing(false)
-        return
-      }
-      await api.post('/thesis/me', thesisForm)
-
-      message.success('ВКР сохранена')
-
-      setHasThesis(true)
+      const values = await form.validateFields()
+      await api.put('/users/me', values)
+      message.success('Профиль обновлён')
       setIsEditing(false)
-      setInitialThesis(thesisForm)
-    } catch (e) {
-      message.error('Ошибка при сохранении ВКР')
+      loadUser()
+    } catch {
+      message.error('Ошибка при сохранении')
     }
   }
 
-  useEffect(() => {
-    if (user?.group_id && groups.length) {
-      const group = groups.find((g) => g.id === user.group_id)
-      setSelectedGroup(group)
+  const handlePasswordChange = async () => {
+    try {
+      const values = await passwordForm.validateFields()
+      await api.put('/users/me/password', {
+        current_password: values.current_password,
+        new_password: values.new_password,
+      })
+      message.success('Пароль изменён')
+      setIsPasswordModalOpen(false)
+      passwordForm.resetFields()
+    } catch (err: any) {
+      const msg = err?.response?.data?.message
+      if (msg) {
+        message.error(msg)
+      } else if (err?.errorFields) {
+        // Ошибка проверки, ничего не делать
+      } else {
+        message.error('Ошибка при смене пароля')
+      }
     }
-  }, [user, groups])
+  }
+
+  const handlePasswordModalClose = () => {
+    setIsPasswordModalOpen(false)
+    passwordForm.resetFields()
+  }
 
   if (!user) return null
 
   return (
     <div className="profile-page">
-      <h2>Профиль</h2>
-
       <Card className="profile-card">
-        <div className="profile-content">
-          <div className="left-block">
-            <div className="info-row">
-              <div className="label">ФИО</div>
-              <div className="value">
-                {user.last_name} {user.first_name} {user.middle_name}
-              </div>
-            </div>
-
-            <div className="info-row">
-              <div className="label">Почта</div>
-              <div className="value">{user.email}</div>
-            </div>
-
-            <div className="info-row">
-              <div className="label">Телефон</div>
-              <div className="value">{user.phone}</div>
-            </div>
-
-            {user.role === 'STUDENT' && (
+        {!isEditing ? (
+          <>
+            <InfoRow
+              label="ФИО"
+              value={[user.last_name, user.first_name, user.middle_name].filter(Boolean).join(' ')}
+            />
+            <InfoRow label="Email" value={user.email} />
+            <InfoRow label="Телефон" value={formatPhone(user.phone)} />
+            {!isSecretary && (
               <>
-                <div className="info-row">
-                  <div className="label">Группа</div>
-
-                  <div className="group-row">
-                    <Select
-                      value={selectedGroupId || undefined}
-                      onChange={handleGroupChange}
-                      options={groups.map((g) => ({
-                        label: `${g.name} (${g.direction_code})`,
-                        value: g.id,
-                      }))}
-                    />
-
-                    <Button
-                      type="primary"
-                      onClick={handleSave}
-                      disabled={!selectedGroupId || selectedGroupId === initialGroupId}
-                    >
-                      Сохранить
-                    </Button>
-                  </div>
-                </div>
+                <InfoRow
+                  label="Должность"
+                  value={user.position ? POSITION_LABELS[user.position] : undefined}
+                />
+                {hasDegree(user.position) && (
+                  <InfoRow
+                    label="Учёная степень"
+                    value={user.degree ? DEGREE_LABELS[user.degree] : undefined}
+                  />
+                )}
               </>
             )}
-          </div>
-
-          {selectedGroup && (
-            <div className="right-block">
-              <div className="info-row">
-                <div className="label">Группа</div>
-                <div className="value">{selectedGroup.name}</div>
-              </div>
-
-              <div className="info-row">
-                <div className="label">Направление</div>
-                <div className="value">
-                  {selectedGroup.direction} ({selectedGroup.direction_code})
-                </div>
-              </div>
-
-              <div className="info-row">
-                <div className="label">Профиль</div>
-                <div className="value">{selectedGroup.profile}</div>
-              </div>
-
-              <div className="info-row">
-                <div className="label">Обучение</div>
-                <div className="value">
-                  {selectedGroup.education_level}, {selectedGroup.course} курс,{' '}
-                  {selectedGroup.education_form}
-                </div>
-              </div>
+            <div className="card-actions">
+              <Button icon={<EditOutlined />} onClick={handleEdit}>
+                Редактировать
+              </Button>
+              <Button icon={<LockOutlined />} onClick={() => setIsPasswordModalOpen(true)}>
+                Сменить пароль
+              </Button>
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <Form
+            form={form}
+            layout="vertical"
+            onValuesChange={(changed) => {
+              if ('position' in changed && !hasDegree(changed.position)) {
+                form.setFieldValue('degree', undefined)
+              }
+            }}
+          >
+            <Form.Item
+              label="Фамилия"
+              name="last_name"
+              rules={[{ required: true, message: 'Введите фамилию' }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label="Имя"
+              name="first_name"
+              rules={[{ required: true, message: 'Введите имя' }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item label="Отчество" name="middle_name">
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: 'Введите email' },
+                { type: 'email', message: 'Некорректный email' },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item label="Телефон" name="phone">
+              <Input />
+            </Form.Item>
+            {!isSecretary && (
+              <>
+                <Form.Item label="Должность" name="position">
+                  <Select
+                    allowClear
+                    placeholder="Выберите должность"
+                    options={Object.entries(POSITION_LABELS).map(([key, label]) => ({
+                      value: key,
+                      label,
+                    }))}
+                  />
+                </Form.Item>
+                <Form.Item noStyle shouldUpdate={(prev, cur) => prev.position !== cur.position}>
+                  {({ getFieldValue }) =>
+                    hasDegree(getFieldValue('position')) ? (
+                      <Form.Item label="Учёная степень" name="degree">
+                        <Select
+                          allowClear
+                          placeholder="Выберите степень"
+                          options={Object.entries(DEGREE_LABELS).map(([key, label]) => ({
+                            value: key,
+                            label,
+                          }))}
+                        />
+                      </Form.Item>
+                    ) : null
+                  }
+                </Form.Item>
+              </>
+            )}
+            <div className="card-actions">
+              <Button icon={<CloseOutlined />} onClick={handleCancel}>
+                Отмена
+              </Button>
+              <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
+                Сохранить
+              </Button>
+            </div>
+          </Form>
+        )}
       </Card>
 
-      {user.role === 'STUDENT' && (
-        <>
-          <Card title="Моя ВКР" className="thesis-card">
-            <div className="thesis-form">
-              <div className="form-row">
-                <label>Тема</label>
-                <textarea
-                  name="topic"
-                  value={thesisForm.topic}
-                  onChange={handleThesisChange}
-                  disabled={disabled}
-                />
-              </div>
-
-              <div className="form-row">
-                <label>Руководитель от кафедры</label>
-                <input
-                  name="supervisor_name"
-                  value={thesisForm.supervisor_name}
-                  onChange={handleThesisChange}
-                  disabled={disabled}
-                />
-              </div>
-
-              <div className="form-row">
-                <label>Место выполнения ВКР (преддипломная практика)</label>
-                <input
-                  name="practice_place"
-                  value={thesisForm.practice_place}
-                  onChange={handleThesisChange}
-                  disabled={disabled}
-                />
-              </div>
-
-              <div className="form-row">
-                <label>Руководитель от предприятия (ФИО, телефон)</label>
-                <input
-                  name="company_supervisor_name"
-                  value={thesisForm.company_supervisor_name}
-                  onChange={handleThesisChange}
-                  disabled={disabled}
-                />
-              </div>
-
-              <div className="form-actions">
-                {!hasThesis && (
-                  <Button type="primary" onClick={handleSaveThesis}>
-                    Сохранить ВКР
-                  </Button>
-                )}
-
-                {hasThesis && !isEditing && (
-                  <Button onClick={() => setIsEditing(true)}>Редактировать</Button>
-                )}
-
-                {hasThesis && isEditing && (
-                  <Button type="primary" onClick={handleSaveThesis}>
-                    Сохранить изменения
-                  </Button>
-                )}
-              </div>
-            </div>
-          </Card>
-        </>
-      )}
+      <Modal
+        title="Смена пароля"
+        open={isPasswordModalOpen}
+        onOk={handlePasswordChange}
+        onCancel={handlePasswordModalClose}
+        okText="Сохранить"
+        cancelText="Отмена"
+        destroyOnHidden
+      >
+        <Form form={passwordForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            label="Текущий пароль"
+            name="current_password"
+            rules={[{ required: true, message: 'Введите текущий пароль' }]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            label="Новый пароль"
+            name="new_password"
+            rules={[
+              { required: true, message: 'Введите новый пароль' },
+              { min: 6, message: 'Минимум 6 символов' },
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            label="Повторите новый пароль"
+            name="confirm_password"
+            dependencies={['new_password']}
+            rules={[
+              { required: true, message: 'Повторите новый пароль' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('new_password') === value) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(new Error('Пароли не совпадают'))
+                },
+              }),
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }
