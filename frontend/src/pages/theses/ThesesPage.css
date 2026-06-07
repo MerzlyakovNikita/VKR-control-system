@@ -5,6 +5,7 @@
 .theses-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -25,8 +26,26 @@
   color: #1677ff;
 }
 
+.group-header-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .group-header-label {
   font-weight: 600;
+}
+
+.group-add-icon {
+  color: #1677ff;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.group-header-row:hover .group-add-icon {
+  opacity: 1;
 }
 
 .row-index {

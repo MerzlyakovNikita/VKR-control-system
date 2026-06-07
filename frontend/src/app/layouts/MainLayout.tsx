@@ -11,13 +11,11 @@ export const MainLayout = () => {
   const location = useLocation()
 
   const isPracticeSupervisor = hasRole('PRACTICE_SUPERVISOR')
-  const isThesisSupervisor = hasRole('THESIS_SUPERVISOR')
   const isHead = hasRole('HEAD_OF_DEPARTMENT')
   const isSecretary = hasRole('SECRETARY')
 
   const navItems = [
     { key: '/theses', label: 'Темы ВКР' },
-    ...(isThesisSupervisor ? [{ key: '/my-theses', label: 'Мои темы' }] : []),
     ...(isPracticeSupervisor || isSecretary ? [{ key: '/groups', label: 'Учебные группы' }] : []),
     ...(isHead || isSecretary ? [{ key: '/reviewers', label: 'Рецензенты' }] : []),
     ...(isSecretary ? [{ key: '/schedule', label: 'График' }] : []),

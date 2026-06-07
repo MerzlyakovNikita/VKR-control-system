@@ -4,7 +4,6 @@ import { api } from '../../shared/api/axios'
 import './GroupsPage.css'
 import { useNavigate } from 'react-router-dom'
 import { EditOutlined, DeleteOutlined, SelectOutlined } from '@ant-design/icons'
-import { getUser, hasRole } from '../../shared/lib/auth'
 import {
   EDUCATION_FORMS,
   EDUCATION_FORM_LABELS,
@@ -15,9 +14,6 @@ import {
 const { Search } = Input
 
 export default function GroupsPage() {
-  const currentUser = getUser()
-  const isSecretary = hasRole('SECRETARY')
-
   const [groups, setGroups] = useState<any[]>([])
   const [directions, setDirections] = useState<any[]>([])
   const [profiles, setProfiles] = useState<any[]>([])
@@ -160,18 +156,14 @@ export default function GroupsPage() {
                           className="navigate-icon"
                           onClick={() => navigate(`/theses?group=${encodeURIComponent(g.name)}`)}
                         />
-                        {(isSecretary || g.created_by === currentUser?.id) && (
-                          <>
-                            <EditOutlined className="edit-icon" onClick={() => handleEdit(g)} />
-                            <DeleteOutlined
-                              className="delete-icon"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                confirmDeleteGroup(g.id)
-                              }}
-                            />
-                          </>
-                        )}
+                        <EditOutlined className="edit-icon" onClick={() => handleEdit(g)} />
+                        <DeleteOutlined
+                          className="delete-icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            confirmDeleteGroup(g.id)
+                          }}
+                        />
                       </div>
                     </div>
                     {g.profile_name && (

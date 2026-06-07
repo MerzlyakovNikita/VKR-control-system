@@ -6,6 +6,7 @@ import ProfilePage from '../../pages/profile/ProfilePage'
 import GroupsPage from '../../pages/secretary/GroupsPage'
 import ThesesPage from '../../pages/theses/ThesesPage'
 import RegistrationRequestsPage from '../../pages/secretary/RegistrationRequestsPage'
+import AssignmentRequestsPage from '../../pages/head/AssignmentRequestsPage'
 import { ProtectedRoute } from '../providers/ProtectedRoute'
 
 export const AppRouter = () => {
@@ -49,6 +50,15 @@ export const AppRouter = () => {
           element={
             <ProtectedRoute roles={['SECRETARY']}>
               <RegistrationRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="requests/assignment"
+          element={
+            <ProtectedRoute roles={['HEAD_OF_DEPARTMENT']}>
+              <AssignmentRequestsPage />
             </ProtectedRoute>
           }
         />

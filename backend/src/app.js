@@ -8,6 +8,7 @@ import groupRoutes from './routes/group.routes.js'
 import thesisRoutes from './routes/thesis.routes.js'
 import directionRoutes from './routes/direction.routes.js'
 import reviewerRoutes from './routes/reviewer.routes.js'
+import requestsRoutes from './routes/requests.routes.js'
 
 dotenv.config()
 
@@ -22,6 +23,7 @@ app.use('/groups', groupRoutes)
 app.use('/thesis', thesisRoutes)
 app.use('/directions', directionRoutes)
 app.use('/reviewers', reviewerRoutes)
+app.use('/requests', requestsRoutes)
 
 const PORT = process.env.PORT || 3000
 

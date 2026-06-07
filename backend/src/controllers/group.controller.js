@@ -20,10 +20,10 @@ export const createGroup = async (req, res) => {
     }
 
     const result = await db.query(
-      `INSERT INTO groups (created_by, direction_id, profile_id, education_form, name, course)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO groups (direction_id, profile_id, education_form, name, course)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [req.user.id, direction_id, profile_id || null, education_form, name, course],
+      [direction_id, profile_id || null, education_form, name, course],
     )
 
     res.json(result.rows[0])
@@ -43,7 +43,6 @@ export const getGroups = async (req, res) => {
         g.education_form,
         g.direction_id,
         g.profile_id,
-        g.created_by,
         d.code  AS direction_code,
         d.name  AS direction_name,
         d.education_level,
@@ -69,13 +68,6 @@ export const updateGroup = async (req, res) => {
     }
 
     const { id } = req.params
-
-    if (!isSecretary) {
-      const owner = await db.query('SELECT created_by FROM groups WHERE id = $1', [id])
-      if (owner.rows[0]?.created_by !== req.user.id) {
-        return res.status(403).json({ error: 'Нет доступа' })
-      }
-    }
     const { name, direction_id, profile_id, education_form, course } = req.body
 
     if (!name || !direction_id || !education_form || !course) {
@@ -108,13 +100,6 @@ export const deleteGroup = async (req, res) => {
     const isPracticeSupervisor = req.user.roles?.includes('PRACTICE_SUPERVISOR')
     if (!isSecretary && !isPracticeSupervisor) {
       return res.status(403).json({ message: 'Нет доступа' })
-    }
-
-    if (!isSecretary) {
-      const owner = await db.query('SELECT created_by FROM groups WHERE id = $1', [req.params.id])
-      if (owner.rows[0]?.created_by !== req.user.id) {
-        return res.status(403).json({ message: 'Нет доступа' })
-      }
     }
 
     await db.query('DELETE FROM groups WHERE id = $1', [req.params.id])

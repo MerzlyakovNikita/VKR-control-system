@@ -1,0 +1,71 @@
+.assignment-requests-page {
+  padding: 16px;
+}
+
+.supervisor-header-row td {
+  background: #f0f5ff !important;
+  font-weight: 600;
+  color: #1677ff;
+}
+
+.supervisor-header-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-fio-oneline {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.request-expanded {
+  padding: 4px 8px 4px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-expand-section {
+  display: flex;
+  gap: 12px;
+}
+
+.request-expand-label {
+  width: 60px;
+  min-width: 60px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 13px;
+  padding-top: 1px;
+}
+
+.request-expand-text {
+  font-size: 13px;
+  white-space: pre-wrap;
+  flex: 1;
+}
+
+.student-group-name {
+  font-size: 12px;
+}
+
+.topic-paragraph {
+  margin: 0;
+  font-size: 13px;
+}
+
+.no-value {
+  color: #bfbfbf;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.reject-modal-text {
+  margin-bottom: 12px;
+}
