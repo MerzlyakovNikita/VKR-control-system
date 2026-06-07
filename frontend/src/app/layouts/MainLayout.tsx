@@ -25,7 +25,7 @@ export const MainLayout = () => {
           { key: '/requests/approval', label: 'Заявки на утверждение' },
         ]
       : []),
-    ...(isSecretary ? [{ key: '/requests/registration', label: 'Заявки на регистрацию' }] : []),
+    ...(isSecretary ? [{ key: '/administration', label: 'Администрирование' }] : []),
   ]
 
   const handleLogout = () => {

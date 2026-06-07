@@ -53,7 +53,7 @@ export const getAllTheses = async (req, res) => {
       LEFT JOIN directions d     ON d.id = g.direction_id
       LEFT JOIN profiles p       ON p.id = g.profile_id
       LEFT JOIN users u          ON u.id = v.supervisor_id
-      LEFT JOIN reviewers rv     ON rv.student_id = s.id
+      LEFT JOIN reviewers rv     ON rv.id = s.reviewer_id
       LEFT JOIN defense_dates dd ON dd.id = s.defense_date_id
       LEFT JOIN LATERAL (
         SELECT resolved_at FROM vkr_requests
@@ -313,9 +313,9 @@ export const setThesisSupervisor = async (req, res) => {
     const { id } = req.params
     const { supervisor_id, position, degree } = req.body
 
-    const vkrResult = await db.query('SELECT id FROM vkr WHERE student_id = $1', [id])
+    const vkrResult = await db.query('SELECT id, status FROM vkr WHERE student_id = $1', [id])
     if (vkrResult.rowCount === 0) return res.status(404).json({ message: 'ВКР не найдена' })
-    const vkrId = vkrResult.rows[0].id
+    const { id: vkrId, status: currentStatus } = vkrResult.rows[0]
 
     if (supervisor_id) {
       const profResult = await db.query('SELECT position, degree FROM users WHERE id = $1', [supervisor_id])
@@ -345,7 +345,9 @@ export const setThesisSupervisor = async (req, res) => {
       }
     }
 
-    const newStatus = supervisor_id ? 'ASSIGNED' : 'UNASSIGNED'
+    const newStatus = supervisor_id
+      ? (currentStatus === 'APPROVED' ? 'APPROVED' : 'ASSIGNED')
+      : 'UNASSIGNED'
     await db.query(
       'UPDATE vkr SET supervisor_id = $1, status = $2, updated_at = NOW() WHERE id = $3',
       [supervisor_id || null, newStatus, vkrId],

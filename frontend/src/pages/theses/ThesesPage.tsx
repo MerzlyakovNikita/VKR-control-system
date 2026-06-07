@@ -27,7 +27,9 @@ const hasDegree = (position?: string) =>
 
 const toShortFio = (fullFio: string) => {
   const [last = '', first = '', middle = ''] = fullFio.trim().split(/\s+/)
-  return [last, first ? first[0] + '.' : '', middle ? middle[0] + '.' : ''].filter(Boolean).join(' ')
+  return [last, first ? first[0] + '.' : '', middle ? middle[0] + '.' : '']
+    .filter(Boolean)
+    .join(' ')
 }
 
 function StaticRow({ label, children }: { label: string; children?: ReactNode }) {
@@ -493,14 +495,15 @@ export default function ThesesPage() {
         })),
       )
     } catch {
-      // non-critical
     }
   }
 
   const handleSupervisorSave = async (supervisorId: number | null) => {
     if (!selectedStudent) return
     try {
-      await api.put(`/thesis/student/${selectedStudent.id}/supervisor`, { supervisor_id: supervisorId })
+      await api.put(`/thesis/student/${selectedStudent.id}/supervisor`, {
+        supervisor_id: supervisorId,
+      })
       message.success(supervisorId ? 'Руководитель назначен' : 'Руководитель откреплён')
       const fresh = await loadTheses(true)
       if (fresh) {
@@ -537,7 +540,13 @@ export default function ThesesPage() {
         degree: profileFillModal.degree,
       })
       message.success('Руководитель назначен')
-      setProfileFillModal({ open: false, supervisorId: null, supervisorFio: '', position: '', degree: '' })
+      setProfileFillModal({
+        open: false,
+        supervisorId: null,
+        supervisorFio: '',
+        position: '',
+        degree: '',
+      })
       const fresh = await loadTheses(true)
       if (fresh) {
         const student = fresh.find((t: any) => t.id === selectedStudent.id)
@@ -606,9 +615,16 @@ export default function ThesesPage() {
     if (!selectedStudent) return
     Modal.confirm({
       title: 'Закрепить за собой?',
-      content: isHead
-        ? `${selectedStudent.last_name} ${selectedStudent.first_name} будет закреплён за вами.`
-        : `Заявка на закрепление будет отправлена заведующему кафедрой.`,
+      content: isHead ? (
+        <span>
+          <strong>
+            {selectedStudent.last_name} {selectedStudent.first_name}
+          </strong>{' '}
+          будет закреплён за вами.
+        </span>
+      ) : (
+        `Заявка на закрепление будет отправлена заведующему кафедрой.`
+      ),
       okText: 'Закрепить',
       cancelText: 'Отмена',
       onOk: async () => {
@@ -645,7 +661,14 @@ export default function ThesesPage() {
     if (!selectedStudent) return
     Modal.confirm({
       title: 'Удалить студента?',
-      content: `${selectedStudent.last_name} ${selectedStudent.first_name} и все его данные по ВКР будут удалены безвозвратно.`,
+      content: (
+        <span>
+          <strong>
+            {selectedStudent.last_name} {selectedStudent.first_name}
+          </strong>{' '}
+          и все его данные по ВКР будут удалены безвозвратно.
+        </span>
+      ),
       okText: 'Удалить',
       okType: 'danger',
       cancelText: 'Отмена',
@@ -1242,13 +1265,20 @@ export default function ThesesPage() {
         }}
         onOk={handleProfileFillAndSave}
         onCancel={() =>
-          setProfileFillModal({ open: false, supervisorId: null, supervisorFio: '', position: '', degree: '' })
+          setProfileFillModal({
+            open: false,
+            supervisorId: null,
+            supervisorFio: '',
+            position: '',
+            degree: '',
+          })
         }
         destroyOnHidden
       >
         <p style={{ marginBottom: 16, color: 'rgba(0,0,0,0.65)' }}>
           У руководителя <strong>{toShortFio(profileFillModal.supervisorFio)}</strong> не заполнен
-          профиль. Укажите должность{hasDegree(profileFillModal.position) ? ' и учёную степень' : ''}, чтобы продолжить.
+          профиль. Укажите должность
+          {hasDegree(profileFillModal.position) ? ' и учёную степень' : ''}, чтобы продолжить.
         </p>
         <div className="import-modal-body">
           <div className="import-field">

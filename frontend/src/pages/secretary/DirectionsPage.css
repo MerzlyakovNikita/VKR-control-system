@@ -1,0 +1,89 @@
+.directions-page {
+  padding: 16px;
+}
+
+.directions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.directions-section {
+  margin-bottom: 32px;
+}
+
+.directions-section-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.direction-actions {
+  display: flex;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ant-table-row:hover .direction-actions {
+  opacity: 1;
+}
+
+.direction-edit-icon,
+.direction-delete-icon {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.direction-edit-icon:hover {
+  color: #1677ff;
+}
+
+.direction-delete-icon:hover {
+  color: #ff4d4f;
+}
+
+.profiles-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-cell-item {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.75);
+  line-height: 1.5;
+}
+
+.profiles-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.profile-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.profile-existing-item {
+  flex: 1;
+  padding: 4px 11px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.profile-remove-btn {
+  flex-shrink: 0;
+}

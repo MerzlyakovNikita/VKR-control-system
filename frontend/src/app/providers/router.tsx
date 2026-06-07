@@ -5,8 +5,10 @@ import RegisterPage from '../../pages/auth/RegisterPage'
 import ProfilePage from '../../pages/profile/ProfilePage'
 import GroupsPage from '../../pages/secretary/GroupsPage'
 import ThesesPage from '../../pages/theses/ThesesPage'
-import RegistrationRequestsPage from '../../pages/secretary/RegistrationRequestsPage'
+import AdministrationPage from '../../pages/secretary/AdministrationPage'
 import AssignmentRequestsPage from '../../pages/head/AssignmentRequestsPage'
+import DirectionsPage from '../../pages/secretary/DirectionsPage'
+import ReviewersPage from '../../pages/reviewers/ReviewersPage'
 import { ProtectedRoute } from '../providers/ProtectedRoute'
 
 export const AppRouter = () => {
@@ -46,10 +48,28 @@ export const AppRouter = () => {
         />
 
         <Route
-          path="requests/registration"
+          path="administration"
           element={
             <ProtectedRoute roles={['SECRETARY']}>
-              <RegistrationRequestsPage />
+              <AdministrationPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="directions"
+          element={
+            <ProtectedRoute roles={['SECRETARY']}>
+              <DirectionsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="reviewers"
+          element={
+            <ProtectedRoute roles={['SECRETARY', 'HEAD_OF_DEPARTMENT']}>
+              <ReviewersPage />
             </ProtectedRoute>
           }
         />

@@ -112,7 +112,12 @@ export default function AssignmentRequestsPage() {
   const handleApprove = (item: AssignmentRequest) => {
     Modal.confirm({
       title: 'Одобрить заявку?',
-      content: `${supShort(item)} станет руководителем ВКР студента ${shortFio(item.student_last_name, item.student_first_name, item.student_middle_name)}`,
+      content: (
+        <span>
+          <strong>{supShort(item)}</strong> станет руководителем ВКР студента{' '}
+          <strong>{shortFio(item.student_last_name, item.student_first_name, item.student_middle_name)}</strong>
+        </span>
+      ),
       okText: 'Одобрить',
       cancelText: 'Отмена',
       onOk: async () => {
@@ -269,12 +274,12 @@ export default function AssignmentRequestsPage() {
       >
         {rejectModal.item && (
           <p className="reject-modal-text">
-            Заявка от {supShort(rejectModal.item)} на студента{' '}
-            {shortFio(
+            Заявка от <strong>{supShort(rejectModal.item)}</strong> на студента{' '}
+            <strong>{shortFio(
               rejectModal.item.student_last_name,
               rejectModal.item.student_first_name,
               rejectModal.item.student_middle_name,
-            )}{' '}
+            )}</strong>{' '}
             будет отклонена.
           </p>
         )}

@@ -1,0 +1,14 @@
+.reviewers-page {
+  padding: 24px;
+}
+
+.reviewers-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.reviewers-search {
+  width: 280px;
+}

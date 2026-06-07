@@ -3,7 +3,13 @@ import { Button, Modal, Form, Input, Select, Card, message, Row, Col, Empty } fr
 import { api } from '../../shared/api/axios'
 import './GroupsPage.css'
 import { useNavigate } from 'react-router-dom'
-import { EditOutlined, DeleteOutlined, SelectOutlined } from '@ant-design/icons'
+import {
+  EditOutlined,
+  DeleteOutlined,
+  SelectOutlined,
+  ApartmentOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
 import {
   EDUCATION_FORMS,
   EDUCATION_FORM_LABELS,
@@ -188,9 +194,14 @@ export default function GroupsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value.trimStart())}
             />
-            <Button type="primary" style={{ marginTop: 20 }} onClick={() => setOpen(true)}>
-              Добавить группу
-            </Button>
+            <div className="panel-buttons">
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)} block>
+                Добавить группу
+              </Button>
+              <Button icon={<ApartmentOutlined />} onClick={() => navigate('/directions')} block>
+                Направления подготовки
+              </Button>
+            </div>
           </Card>
         </Col>
       </Row>

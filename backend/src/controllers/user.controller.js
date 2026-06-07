@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt'
+import crypto from 'crypto'
 import { db } from '../db/index.js'
 import { capitalize, normalizePhone, normalizeEmail } from '../shared/normalize.js'
 
@@ -151,5 +152,79 @@ export const rejectUser = async (req, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Ошибка отклонения заявки' })
+  }
+}
+
+export const getActiveUsers = async (req, res) => {
+  try {
+    if (!req.user.roles?.includes('SECRETARY')) {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+    const result = await db.query(`
+      SELECT u.id, u.last_name, u.first_name, u.middle_name, u.email,
+        array_agg(ur.role::text ORDER BY ur.role) AS roles
+      FROM users u
+      JOIN user_roles ur ON ur.user_id = u.id
+      WHERE u.id != $1
+      GROUP BY u.id
+      ORDER BY u.last_name, u.first_name
+    `, [req.user.id])
+    res.json(result.rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка загрузки пользователей' })
+  }
+}
+
+export const updateUserRoles = async (req, res) => {
+  try {
+    if (!req.user.roles?.includes('SECRETARY')) {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+    const { id } = req.params
+    const { roles: newRoles = [] } = req.body
+
+    const currentResult = await db.query('SELECT role FROM user_roles WHERE user_id = $1', [id])
+    const currentRoles = currentResult.rows.map((r) => r.role)
+
+    const removingThesisSupervisor =
+      currentRoles.includes('THESIS_SUPERVISOR') && !newRoles.includes('THESIS_SUPERVISOR')
+
+    if (removingThesisSupervisor) {
+      const { rows } = await db.query(
+        "SELECT COUNT(*) FROM vkr WHERE supervisor_id = $1 AND status IN ('ASSIGNED', 'ON_APPROVAL', 'APPROVED')",
+        [id],
+      )
+      if (Number(rows[0].count) > 0) {
+        return res.status(400).json({
+          message: 'Нельзя снять роль руководителя ВКР: за этим пользователем закреплены студенты',
+        })
+      }
+    }
+
+    await db.query('DELETE FROM user_roles WHERE user_id = $1', [id])
+    for (const role of newRoles) {
+      await db.query('INSERT INTO user_roles (user_id, role) VALUES ($1, $2)', [id, role])
+    }
+
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка обновления ролей' })
+  }
+}
+
+export const resetPassword = async (req, res) => {
+  try {
+    if (!req.user.roles?.includes('SECRETARY')) {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+    const tempPassword = crypto.randomBytes(4).toString('hex').toUpperCase()
+    const hash = await bcrypt.hash(tempPassword, 10)
+    await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, req.params.id])
+    res.json({ tempPassword })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка сброса пароля' })
   }
 }

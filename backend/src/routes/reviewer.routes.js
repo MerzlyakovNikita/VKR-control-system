@@ -6,7 +6,15 @@ const router = Router()
 
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM reviewers ORDER BY last_name')
+    const result = await db.query(`
+      SELECT r.id, r.last_name, r.first_name, r.middle_name, r.degree, r.position,
+             r.workplace, r.email, r.phone, r.is_active,
+             COUNT(s.id)::int AS student_count
+      FROM reviewers r
+      LEFT JOIN students s ON s.reviewer_id = r.id
+      GROUP BY r.id
+      ORDER BY r.last_name, r.first_name
+    `)
     res.json(result.rows)
   } catch (e) {
     console.error(e)
