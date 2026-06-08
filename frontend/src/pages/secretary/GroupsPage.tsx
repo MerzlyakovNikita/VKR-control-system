@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Modal, Form, Input, Select, Card, message, Row, Col, Empty } from 'antd'
+import { Button, Modal, Form, Input, Select, Card, message, Row, Col, Empty, InputNumber } from 'antd'
 import { api } from '../../shared/api/axios'
 import './GroupsPage.css'
 import { useNavigate } from 'react-router-dom'
@@ -19,6 +19,11 @@ import {
 
 const { Search } = Input
 
+const getDefaultYear = () => {
+  const now = new Date()
+  return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
+}
+
 export default function GroupsPage() {
   const [groups, setGroups] = useState<any[]>([])
   const [directions, setDirections] = useState<any[]>([])
@@ -27,6 +32,7 @@ export default function GroupsPage() {
   const [form] = Form.useForm()
   const [search, setSearch] = useState('')
   const [editingGroup, setEditingGroup] = useState<any | null>(null)
+  const [yearFilter, setYearFilter] = useState<number | null>(getDefaultYear)
   const navigate = useNavigate()
 
   const loadGroups = async () => {
@@ -106,6 +112,7 @@ export default function GroupsPage() {
       direction_id: group.direction_id,
       profile_id: group.profile_id,
       education_form: group.education_form,
+      graduation_year: group.graduation_year,
     })
   }
 
@@ -128,12 +135,15 @@ export default function GroupsPage() {
     })
   }
 
+  const availableYears = [...new Set(groups.map((g) => g.graduation_year as number))].sort()
+
   const filteredGroups = groups.filter((g) => {
-    const value = search.toLowerCase()
+    if (yearFilter !== null && g.graduation_year !== yearFilter) return false
+    const q = search.toLowerCase()
     return (
-      g.name.toLowerCase().includes(value) ||
-      (g.direction_name || '').toLowerCase().includes(value) ||
-      (g.direction_code || '').toLowerCase().includes(value)
+      g.name.toLowerCase().includes(q) ||
+      (g.direction_name || '').toLowerCase().includes(q) ||
+      (g.direction_code || '').toLowerCase().includes(q)
     )
   })
 
@@ -144,7 +154,7 @@ export default function GroupsPage() {
       <Row gutter={16} style={{ marginTop: 10 }}>
         <Col span={19}>
           {filteredGroups.length === 0 ? (
-            <Empty description="Учебные группы не добавлены" />
+            <Empty description="Учебные группы не найдены" />
           ) : (
             <Row gutter={[16, 16]}>
               {filteredGroups.map((g) => (
@@ -193,6 +203,14 @@ export default function GroupsPage() {
               allowClear
               value={search}
               onChange={(e) => setSearch(e.target.value.trimStart())}
+            />
+            <Select
+              className="year-filter"
+              placeholder="Все года"
+              allowClear
+              value={yearFilter}
+              onChange={(val) => setYearFilter(val ?? null)}
+              options={availableYears.map((y) => ({ label: `Выпуск ${y}`, value: y }))}
             />
             <div className="panel-buttons">
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)} block>
@@ -258,6 +276,19 @@ export default function GroupsPage() {
                 label: EDUCATION_FORM_LABELS[f],
                 value: f,
               }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="graduation_year"
+            label="Год выпуска"
+            rules={[{ required: true, message: 'Укажите год выпуска' }]}
+          >
+            <InputNumber
+              min={2020}
+              max={2100}
+              placeholder={String(getDefaultYear())}
+              style={{ width: '100%' }}
             />
           </Form.Item>
         </Form>

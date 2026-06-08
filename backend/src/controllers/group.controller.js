@@ -8,9 +8,9 @@ export const createGroup = async (req, res) => {
       return res.status(403).json({ error: 'Нет доступа' })
     }
 
-    const { name, direction_id, profile_id, education_form, course } = req.body
+    const { name, direction_id, profile_id, education_form, course, graduation_year } = req.body
 
-    if (!name || !direction_id || !education_form || !course) {
+    if (!name || !direction_id || !education_form || !course || !graduation_year) {
       return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
     }
 
@@ -20,10 +20,10 @@ export const createGroup = async (req, res) => {
     }
 
     const result = await db.query(
-      `INSERT INTO groups (direction_id, profile_id, education_form, name, course)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO groups (direction_id, profile_id, education_form, name, course, graduation_year)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [direction_id, profile_id || null, education_form, name, course],
+      [direction_id, profile_id || null, education_form, name, course, graduation_year],
     )
 
     res.json(result.rows[0])
@@ -41,6 +41,7 @@ export const getGroups = async (req, res) => {
         g.name,
         g.course,
         g.education_form,
+        g.graduation_year,
         g.direction_id,
         g.profile_id,
         d.code  AS direction_code,
@@ -68,19 +69,19 @@ export const updateGroup = async (req, res) => {
     }
 
     const { id } = req.params
-    const { name, direction_id, profile_id, education_form, course } = req.body
+    const { name, direction_id, profile_id, education_form, course, graduation_year } = req.body
 
-    if (!name || !direction_id || !education_form || !course) {
+    if (!name || !direction_id || !education_form || !course || !graduation_year) {
       return res.status(400).json({ error: 'Не все обязательные поля заполнены' })
     }
 
     const result = await db.query(
       `UPDATE groups
        SET name = $1, direction_id = $2, profile_id = $3,
-           education_form = $4, course = $5
-       WHERE id = $6
+           education_form = $4, course = $5, graduation_year = $6
+       WHERE id = $7
        RETURNING *`,
-      [name, direction_id, profile_id || null, education_form, course, id],
+      [name, direction_id, profile_id || null, education_form, course, graduation_year, id],
     )
 
     if (result.rowCount === 0) {

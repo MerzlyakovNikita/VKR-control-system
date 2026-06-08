@@ -156,6 +156,11 @@
   opacity: 1;
 }
 
+.row-doc-btn {
+  flex-shrink: 0;
+  padding: 0 !important;
+}
+
 .desc-row-active {
   background: #f6f9ff;
 }

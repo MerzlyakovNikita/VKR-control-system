@@ -4,7 +4,8 @@ import { normalizePhone, normalizeEmail, capitalize } from '../shared/normalize.
 
 export const getAllTheses = async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await db.query(
+      `
       SELECT
         s.id,
         s.last_name,
@@ -61,7 +62,9 @@ export const getAllTheses = async (req, res) => {
         ORDER BY resolved_at DESC LIMIT 1
       ) req ON true
       ORDER BY g.name, s.last_name
-    `, [req.user.id])
+    `,
+      [req.user.id],
+    )
     res.json(result.rows)
   } catch (e) {
     console.error(e)
@@ -92,17 +95,44 @@ export const deleteStudent = async (req, res) => {
 export const updateStudentAndThesis = async (req, res) => {
   try {
     const { id } = req.params
-    const { last_name, first_name, middle_name, email, phone, topic, goal, tasks, practice_place, company_supervisor, defense_date_id } = req.body
+    const {
+      last_name,
+      first_name,
+      middle_name,
+      email,
+      phone,
+      topic,
+      goal,
+      tasks,
+      practice_place,
+      company_supervisor,
+      defense_date_id,
+    } = req.body
 
     await db.query(
       `UPDATE students SET last_name=$1, first_name=$2, middle_name=$3, email=$4, phone=$5, defense_date_id=$6 WHERE id=$7`,
-      [last_name, first_name, middle_name || null, email || null, normalizePhone(phone), defense_date_id || null, id],
+      [
+        last_name,
+        first_name,
+        middle_name || null,
+        email || null,
+        normalizePhone(phone),
+        defense_date_id || null,
+        id,
+      ],
     )
 
     await db.query(
       `UPDATE vkr SET topic=$1, goal=$2, tasks=$3, practice_place=$4, company_supervisor=$5, updated_at=NOW()
        WHERE student_id=$6`,
-      [topic || null, goal || null, tasks || null, practice_place || null, company_supervisor || null, id],
+      [
+        topic || null,
+        goal || null,
+        tasks || null,
+        practice_place || null,
+        company_supervisor || null,
+        id,
+      ],
     )
 
     res.json({ ok: true })
@@ -119,9 +149,18 @@ export const createStudent = async (req, res) => {
       return res.status(400).json({ message: 'Группа, фамилия и имя обязательны' })
     }
 
-    const { rows: [student] } = await db.query(
+    const {
+      rows: [student],
+    } = await db.query(
       'INSERT INTO students (last_name, first_name, middle_name, email, phone, group_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
-      [capitalize(last_name.trim()), capitalize(first_name.trim()), middle_name?.trim() ? capitalize(middle_name.trim()) : null, normalizeEmail(email), normalizePhone(phone), group_id],
+      [
+        capitalize(last_name.trim()),
+        capitalize(first_name.trim()),
+        middle_name?.trim() ? capitalize(middle_name.trim()) : null,
+        normalizeEmail(email),
+        normalizePhone(phone),
+        group_id,
+      ],
     )
 
     await db.query("INSERT INTO vkr (student_id, topic, status) VALUES ($1,$2,'UNASSIGNED')", [
@@ -146,13 +185,21 @@ export const assignSupervisor = async (req, res) => {
       return res.status(403).json({ message: 'Нет доступа' })
     }
 
-    const profileResult = await db.query('SELECT position, degree FROM users WHERE id = $1', [userId])
+    const profileResult = await db.query('SELECT position, degree FROM users WHERE id = $1', [
+      userId,
+    ])
     const { position, degree } = profileResult.rows[0]
     if (!position?.trim()) {
-      return res.status(400).json({ message: 'Для закрепления студентов необходимо указать должность в профиле.', needsProfile: true })
+      return res.status(400).json({
+        message: 'Для закрепления студентов необходимо указать должность в профиле.',
+        needsProfile: true,
+      })
     }
     if (!degree?.trim()) {
-      return res.status(400).json({ message: 'Для закрепления студентов необходимо указать учёную степень в профиле.', needsProfile: true })
+      return res.status(400).json({
+        message: 'Для закрепления студентов необходимо указать учёную степень в профиле.',
+        needsProfile: true,
+      })
     }
 
     const vkrResult = await db.query('SELECT id FROM vkr WHERE student_id = $1', [id])
@@ -162,7 +209,10 @@ export const assignSupervisor = async (req, res) => {
     const vkrId = vkrResult.rows[0].id
 
     if (roles.includes('HEAD_OF_DEPARTMENT')) {
-      await db.query('UPDATE vkr SET supervisor_id = $1, updated_at = NOW() WHERE id = $2', [userId, vkrId])
+      await db.query('UPDATE vkr SET supervisor_id = $1, updated_at = NOW() WHERE id = $2', [
+        userId,
+        vkrId,
+      ])
       return res.json({ mode: 'assigned' })
     }
 
@@ -203,7 +253,7 @@ export const importStudents = async (req, res) => {
     const sheetName = workbook.SheetNames.find((n) => n.trim() === groupName.trim())
     if (!sheetName) {
       return res.status(400).json({
-        message: `Лист "${groupName}" не найден в файле. Доступные листы: ${workbook.SheetNames.join(', ')}`,
+        message: `Лист "${groupName}" не найден в файле`,
       })
     }
 
@@ -217,6 +267,17 @@ export const importStudents = async (req, res) => {
         if (k.trim().toLowerCase() === key.toLowerCase()) return String(row[k]).trim()
       }
       return ''
+    }
+
+    const hasColumn = (key) =>
+      Object.keys(rows[0]).some((k) => k.trim().toLowerCase() === key.toLowerCase())
+
+    const requiredColumns = ['ФИО', 'Email', 'Телефон', 'Тема ВКР']
+    const missingColumns = requiredColumns.filter((col) => !hasColumn(col))
+    if (missingColumns.length > 0) {
+      return res.status(400).json({
+        message: `Отсутствуют обязательные столбцы: ${missingColumns.join(', ')}. Проверьте файл и попробуйте снова.`,
+      })
     }
 
     let added = 0
@@ -242,7 +303,7 @@ export const importStudents = async (req, res) => {
       const middleName = parts.length > 2 ? parts.slice(2).map(capitalize).join(' ') : null
       const email = normalizeEmail(getVal(row, 'email'))
       const phone = normalizePhone(getVal(row, 'телефон'))
-      const topic = getVal(row, 'тема вкр') || null
+      const topic = getVal(row, 'тема вкр').replace(/\s+/g, ' ').trim() || null
 
       try {
         const existing = await db.query(
@@ -318,8 +379,11 @@ export const setThesisSupervisor = async (req, res) => {
     const { id: vkrId, status: currentStatus } = vkrResult.rows[0]
 
     if (supervisor_id) {
-      const profResult = await db.query('SELECT position, degree FROM users WHERE id = $1', [supervisor_id])
-      if (profResult.rowCount === 0) return res.status(404).json({ message: 'Руководитель не найден' })
+      const profResult = await db.query('SELECT position, degree FROM users WHERE id = $1', [
+        supervisor_id,
+      ])
+      if (profResult.rowCount === 0)
+        return res.status(404).json({ message: 'Руководитель не найден' })
       const prof = profResult.rows[0]
 
       const finalPosition = position?.trim() || prof.position?.trim()
@@ -346,7 +410,9 @@ export const setThesisSupervisor = async (req, res) => {
     }
 
     const newStatus = supervisor_id
-      ? (currentStatus === 'APPROVED' ? 'APPROVED' : 'ASSIGNED')
+      ? currentStatus === 'APPROVED'
+        ? 'APPROVED'
+        : 'ASSIGNED'
       : 'UNASSIGNED'
     await db.query(
       'UPDATE vkr SET supervisor_id = $1, status = $2, updated_at = NOW() WHERE id = $3',

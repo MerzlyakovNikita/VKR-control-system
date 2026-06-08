@@ -146,12 +146,14 @@ function ReviewerRow({
   reviewerId,
   reviewers,
   onSave,
+  onGenerate,
   canEdit,
 }: {
   reviewerFio?: string
   reviewerId?: number | null
   reviewers: { id: number; fio: string }[]
   onSave: (id: number | null) => Promise<void>
+  onGenerate?: () => void
   canEdit: boolean
 }) {
   const [editing, setEditing] = useState(false)
@@ -205,7 +207,16 @@ function ReviewerRow({
         ) : (
           <div className="desc-display">
             <span>{reviewerFio || '—'}</span>
-            {canEdit && <EditOutlined className="row-edit-icon" onClick={() => setEditing(true)} />}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {canEdit && reviewerId && (
+                <Button size="small" className="row-doc-btn" onClick={onGenerate}>
+                  Направление на рецензию
+                </Button>
+              )}
+              {canEdit && (
+                <EditOutlined className="row-edit-icon" onClick={() => setEditing(true)} />
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -402,18 +413,22 @@ export default function ThesesPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [theses, setTheses] = useState<any[]>([])
-  const [allGroups, setAllGroups] = useState<string[]>([])
+  const [allGroups, setAllGroups] = useState<{ name: string; graduation_year: number }[]>([])
   const [search, setSearch] = useState('')
   const [groupFilter, setGroupFilter] = useState<string[]>(() => {
     const g = searchParams.get('group')
     return g ? [g] : []
   })
   const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [yearFilter, setYearFilter] = useState<number | null>(() => {
+    const now = new Date()
+    return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
+  })
   const [loading, setLoading] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [reviewers, setReviewers] = useState<{ id: number; fio: string }[]>([])
   const [groupDefenseDates, setGroupDefenseDates] = useState<any[]>([])
-  const [allGroupsFull, setAllGroupsFull] = useState<{ id: number; name: string }[]>([])
+  const [allGroupsFull, setAllGroupsFull] = useState<{ id: number; name: string; graduation_year: number }[]>([])
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [importGroupId, setImportGroupId] = useState<number | null>(null)
   const [importFileList, setImportFileList] = useState<UploadFile[]>([])
@@ -463,8 +478,8 @@ export default function ThesesPage() {
     try {
       const { data } = await api.get('/groups')
       const sorted = [...data].sort((a: any, b: any) => a.name.localeCompare(b.name, 'ru'))
-      setAllGroups(sorted.map((g: any) => g.name))
-      setAllGroupsFull(sorted.map((g: any) => ({ id: g.id, name: g.name })))
+      setAllGroups(sorted.map((g: any) => ({ name: g.name, graduation_year: g.graduation_year })))
+      setAllGroupsFull(sorted.map((g: any) => ({ id: g.id, name: g.name, graduation_year: g.graduation_year })))
     } catch {
       message.error('Ошибка загрузки групп')
     }
@@ -474,10 +489,12 @@ export default function ThesesPage() {
     try {
       const { data } = await api.get('/reviewers')
       setReviewers(
-        data.map((r: any) => ({
-          id: r.id,
-          fio: [r.last_name, r.first_name, r.middle_name].filter(Boolean).join(' '),
-        })),
+        data
+          .filter((r: any) => r.is_active)
+          .map((r: any) => ({
+            id: r.id,
+            fio: [r.last_name, r.first_name, r.middle_name].filter(Boolean).join(' '),
+          })),
       )
     } catch {
       message.error('Ошибка загрузки рецензентов')
@@ -596,11 +613,33 @@ export default function ThesesPage() {
     }
   }
 
+  const handleGenerateDirection = async (
+    studentId: number,
+    lastName: string,
+    firstName: string,
+    middleName: string | null,
+  ) => {
+    try {
+      const { data } = await api.get(`/documents/review-direction/${studentId}`, {
+        responseType: 'blob',
+      })
+      const nameSlug = `${lastName}${firstName?.[0] ?? ''}${middleName?.[0] ?? ''}`
+      const url = URL.createObjectURL(new Blob([data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Направление_${nameSlug}.docx`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      message.error('Ошибка формирования документа')
+    }
+  }
+
   const handleReviewerSave = async (reviewerId: number | null) => {
     if (!selectedStudent) return
     try {
       await api.put(`/reviewers/student/${selectedStudent.id}`, { reviewer_id: reviewerId })
-      message.success('Рецензент назначен')
+      message.success(reviewerId ? 'Рецензент назначен' : 'Рецензент откреплён')
       const fresh = await loadTheses(true)
       if (fresh) {
         const student = fresh.find((t: any) => t.id === selectedStudent.id)
@@ -791,18 +830,22 @@ export default function ThesesPage() {
       supervisorFio.includes(query)
 
     const matchGroup = groupFilter.length === 0 || groupFilter.includes(t.group_name)
+    const matchYear =
+      yearFilter === null ||
+      allGroupsFull.find((g) => g.name === t.group_name)?.graduation_year === yearFilter
     const matchStatus = statusFilter.length === 0 || statusFilter.includes(t.status)
     const matchMine = !onlyMine || t.supervisor_id === currentUserId
 
-    return matchSearch && matchGroup && matchStatus && matchMine
+    return matchSearch && matchGroup && matchYear && matchStatus && matchMine
   })
 
   const tableData = (() => {
     const rows: any[] = []
-    const visibleGroups =
-      groupFilter.length > 0
-        ? allGroupsFull.filter((g) => groupFilter.includes(g.name))
-        : allGroupsFull
+    const visibleGroups = allGroupsFull.filter((g) => {
+      if (yearFilter !== null && g.graduation_year !== yearFilter) return false
+      if (groupFilter.length > 0 && !groupFilter.includes(g.name)) return false
+      return true
+    })
     for (const group of visibleGroups) {
       const groupRows = filtered.filter((t) => t.group_name === group.name)
       if (onlyMine && groupRows.length === 0) continue
@@ -944,6 +987,19 @@ export default function ThesesPage() {
           className="theses-search"
         />
         <Select
+          placeholder="Год выпуска"
+          allowClear
+          style={{ minWidth: 130 }}
+          value={yearFilter}
+          onChange={(val) => {
+            setYearFilter(val ?? null)
+            setGroupFilter([])
+          }}
+          options={[...new Set(allGroups.map((g) => g.graduation_year))]
+            .sort()
+            .map((y) => ({ value: y, label: `Выпуск ${y}` }))}
+        />
+        <Select
           mode="multiple"
           placeholder="Учебная группа"
           allowClear
@@ -952,7 +1008,9 @@ export default function ThesesPage() {
           onChange={setGroupFilter}
           maxTagCount={0}
           maxTagPlaceholder={(omitted) => `Групп: ${omitted.length}`}
-          options={allGroups.map((g) => ({ value: g, label: g }))}
+          options={allGroups
+            .filter((g) => yearFilter === null || g.graduation_year === yearFilter)
+            .map((g) => ({ value: g.name, label: g.name }))}
         />
         <Select
           mode="multiple"
@@ -1110,6 +1168,7 @@ export default function ThesesPage() {
                       reviewerId={s.reviewer_id}
                       reviewers={reviewers}
                       onSave={handleReviewerSave}
+                      onGenerate={() => handleGenerateDirection(s.id, s.last_name, s.first_name, s.middle_name)}
                       canEdit={isHead}
                     />
                   )}

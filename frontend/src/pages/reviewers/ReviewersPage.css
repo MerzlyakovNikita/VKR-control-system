@@ -1,5 +1,5 @@
 .reviewers-page {
-  padding: 24px;
+  padding: 16px;
 }
 
 .reviewers-toolbar {
@@ -9,6 +9,22 @@
   margin-bottom: 16px;
 }
 
+.reviewer-edit-icon {
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
+}
+
+.ant-table-row:hover .reviewer-edit-icon {
+  opacity: 1;
+}
+
+.reviewer-edit-icon:hover {
+  color: #1677ff;
+}
+
 .reviewers-search {
-  width: 280px;
+  flex: 1;
 }

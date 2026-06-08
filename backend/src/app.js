@@ -9,6 +9,7 @@ import thesisRoutes from './routes/thesis.routes.js'
 import directionRoutes from './routes/direction.routes.js'
 import reviewerRoutes from './routes/reviewer.routes.js'
 import requestsRoutes from './routes/requests.routes.js'
+import documentRoutes from './routes/document.routes.js'
 
 dotenv.config()
 
@@ -24,6 +25,7 @@ app.use('/thesis', thesisRoutes)
 app.use('/directions', directionRoutes)
 app.use('/reviewers', reviewerRoutes)
 app.use('/requests', requestsRoutes)
+app.use('/documents', documentRoutes)
 
 const PORT = process.env.PORT || 3000
 

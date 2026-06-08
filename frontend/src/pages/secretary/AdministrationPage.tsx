@@ -134,7 +134,7 @@ export default function AdministrationPage() {
       title: 'Сбросить пароль?',
       content: (
         <span>
-          Текущий пароль <strong>{fio(user)}</strong> будет заменён временным.
+          Текущий пароль пользователя <strong>{fio(user)}</strong> будет заменён временным.
         </span>
       ),
       okText: 'Сбросить',
