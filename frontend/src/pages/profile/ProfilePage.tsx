@@ -171,7 +171,7 @@ export default function ProfilePage() {
               <>
                 <Form.Item label="Должность" name="position">
                   <Select
-                    allowClear
+                    allowClear={!user.position}
                     placeholder="Выберите должность"
                     options={Object.entries(POSITION_LABELS).map(([key, label]) => ({
                       value: key,
@@ -184,7 +184,7 @@ export default function ProfilePage() {
                     hasDegree(getFieldValue('position')) ? (
                       <Form.Item label="Учёная степень" name="degree">
                         <Select
-                          allowClear
+                          allowClear={!user.degree}
                           placeholder="Выберите степень"
                           options={Object.entries(DEGREE_LABELS).map(([key, label]) => ({
                             value: key,

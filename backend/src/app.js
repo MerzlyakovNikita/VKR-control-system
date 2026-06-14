@@ -10,6 +10,7 @@ import directionRoutes from './routes/direction.routes.js'
 import reviewerRoutes from './routes/reviewer.routes.js'
 import requestsRoutes from './routes/requests.routes.js'
 import documentRoutes from './routes/document.routes.js'
+import scheduleRoutes from './routes/schedule.routes.js'
 
 dotenv.config()
 
@@ -26,6 +27,7 @@ app.use('/directions', directionRoutes)
 app.use('/reviewers', reviewerRoutes)
 app.use('/requests', requestsRoutes)
 app.use('/documents', documentRoutes)
+app.use('/schedule', scheduleRoutes)
 
 const PORT = process.env.PORT || 3000
 

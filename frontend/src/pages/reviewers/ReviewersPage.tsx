@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Table, Radio, Input, Empty, Button, Modal, Form, Select, Switch, message } from 'antd'
-import { SearchOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons'
+import { SearchOutlined, PlusOutlined, EditOutlined, FileTextOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import { api } from '../../shared/api/axios'
 import { hasRole } from '../../shared/lib/auth'
 import { DEGREE_LABELS, POSITION_LABELS } from '../../shared/lib/constants'
@@ -28,6 +29,10 @@ export default function ReviewersPage() {
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('active')
+  const [currentYear, setCurrentYear] = useState<number>(0)
+  const [year, setYear] = useState<number>(0)
+  const [availableYears, setAvailableYears] = useState<number[]>([])
+  const isArchive = year !== 0 && year !== currentYear
   const [modalOpen, setModalOpen] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
   const [editingReviewer, setEditingReviewer] = useState<Reviewer | null>(null)
@@ -42,6 +47,8 @@ export default function ReviewersPage() {
       first_name: string
       middle_name: string | null
       group_name: string
+      topic: string | null
+      reviewer_assigned_at: string | null
     }[]
     loading: boolean
   }>({ open: false, reviewer: null, students: [], loading: false })
@@ -49,7 +56,7 @@ export default function ReviewersPage() {
   const openStudents = async (r: Reviewer) => {
     setStudentsModal({ open: true, reviewer: r, students: [], loading: true })
     try {
-      const { data } = await api.get(`/reviewers/${r.id}/students`)
+      const { data } = await api.get(`/reviewers/${r.id}/students`, { params: { year: year || undefined } })
       setStudentsModal((prev) => ({ ...prev, students: data, loading: false }))
     } catch {
       message.error('Ошибка загрузки студентов')
@@ -57,16 +64,21 @@ export default function ReviewersPage() {
     }
   }
 
-  const load = () => {
+  const load = (y?: number) => {
     setLoading(true)
     api
-      .get('/reviewers')
+      .get('/reviewers', { params: { year: y || undefined } })
       .then(({ data }) => setReviewers(data))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
-    load()
+    api.get('/groups/current-year').then(({ data }) => {
+      setCurrentYear(data.year)
+      setYear(data.year)
+      load(data.year)
+    })
+    api.get('/reviewers/years').then(({ data }) => setAvailableYears(data))
   }, [])
 
   const openAdd = () => {
@@ -103,10 +115,32 @@ export default function ReviewersPage() {
       }
       setModalOpen(false)
       form.resetFields()
-      load()
+      load(year)
     } catch {
     } finally {
       setModalLoading(false)
+    }
+  }
+
+  const handleYearChange = (y: number) => {
+    setYear(y)
+    load(y)
+  }
+
+  const handleGenerateOrder = async () => {
+    try {
+      const { data } = await api.get('/documents/reviewer-order', {
+        params: { year: year || undefined },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(new Blob([data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Приказ_рецензенты_${year}.docx`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      message.error('Ошибка формирования приказа')
     }
   }
 
@@ -124,12 +158,14 @@ export default function ReviewersPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return reviewers.filter((r) => {
-      if (filter === 'active' && !r.is_active) return false
-      if (filter === 'inactive' && r.is_active) return false
+      if (!isArchive) {
+        if (filter === 'active' && !r.is_active) return false
+        if (filter === 'inactive' && r.is_active) return false
+      }
       if (q && !fio(r).toLowerCase().includes(q)) return false
       return true
     })
-  }, [reviewers, search, filter])
+  }, [reviewers, search, filter, isArchive])
 
   const nowrap = { onCell: () => ({ style: { whiteSpace: 'nowrap' as const } }) }
 
@@ -195,20 +231,24 @@ export default function ReviewersPage() {
           <span>0</span>
         ),
     },
-    {
-      title: 'Этот год',
-      key: 'is_active',
-      width: 90,
-      align: 'center' as const,
-      render: (r: Reviewer) => (
-        <Switch
-          checked={r.is_active}
-          onChange={(checked) => handleToggleActive(r, checked)}
-          size="small"
-        />
-      ),
-    },
-    ...(isSecretary
+    ...(!isArchive
+      ? [
+          {
+            title: 'Этот год',
+            key: 'is_active',
+            width: 90,
+            align: 'center' as const,
+            render: (r: Reviewer) => (
+              <Switch
+                checked={r.is_active}
+                onChange={(checked) => handleToggleActive(r, checked)}
+                size="small"
+              />
+            ),
+          },
+        ]
+      : []),
+    ...(!isArchive && isSecretary
       ? [
           {
             key: 'actions',
@@ -234,22 +274,40 @@ export default function ReviewersPage() {
           allowClear
           className="reviewers-search"
         />
-        <Radio.Group
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          optionType="button"
-          buttonStyle="solid"
+        {!isArchive && (
+          <Radio.Group
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+            options={[
+              { value: 'active', label: 'Этот год' },
+              { value: 'inactive', label: 'Неактивные' },
+              { value: 'all', label: 'Все' },
+            ]}
+          />
+        )}
+        {!isArchive && isSecretary && (
+          <>
+            <Button type="primary" icon={<FileTextOutlined />} onClick={handleGenerateOrder}>
+              Сформировать приказ
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+              Добавить рецензента
+            </Button>
+          </>
+        )}
+        <Select
+          value={year || undefined}
+          onChange={handleYearChange}
+          style={{ width: 100 }}
           options={[
-            { value: 'active', label: 'Этот год' },
-            { value: 'inactive', label: 'Неактивные' },
-            { value: 'all', label: 'Все' },
+            { value: currentYear, label: String(currentYear) },
+            ...availableYears
+              .filter((y) => y !== currentYear)
+              .map((y) => ({ value: y, label: String(y) })),
           ]}
         />
-        {isSecretary && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
-            Добавить рецензента
-          </Button>
-        )}
       </div>
 
       <Table
@@ -265,6 +323,7 @@ export default function ReviewersPage() {
       <Modal
         open={studentsModal.open}
         centered
+        width={1000}
         title={
           studentsModal.reviewer ? `Студенты рецензента — ${fio(studentsModal.reviewer)}:` : ''
         }
@@ -279,13 +338,28 @@ export default function ReviewersPage() {
           size="small"
           locale={{ emptyText: <Empty description="Студенты не назначены" /> }}
           columns={[
+            { title: 'Группа', dataIndex: 'group_name', key: 'group_name', width: 120 },
             {
               title: 'ФИО',
               key: 'fio',
+              width: 260,
               render: (s: any) =>
                 [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(' '),
             },
-            { title: 'Группа', dataIndex: 'group_name', key: 'group_name', width: 120 },
+            {
+              title: 'Тема',
+              dataIndex: 'topic',
+              key: 'topic',
+              render: (v: string | null) => v ?? '—',
+            },
+            {
+              title: 'Дата назначения',
+              dataIndex: 'reviewer_assigned_at',
+              key: 'reviewer_assigned_at',
+              width: 140,
+              render: (v: string | null) =>
+                v ? dayjs(v).format('DD.MM.YY') : '—',
+            },
           ]}
         />
       </Modal>

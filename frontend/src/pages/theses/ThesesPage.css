@@ -36,18 +36,6 @@
   font-weight: 600;
 }
 
-.group-add-icon {
-  color: #1677ff;
-  cursor: pointer;
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.group-header-row:hover .group-add-icon {
-  opacity: 1;
-}
-
 .row-index {
   color: #888;
 }
@@ -144,15 +132,30 @@
   min-height: 22px;
 }
 
-.row-edit-icon {
-  opacity: 0;
+.row-edit-icon,
+.approval-date-edit-icon,
+.group-add-icon {
   color: #1677ff;
   cursor: pointer;
+  opacity: 0;
   flex-shrink: 0;
   transition: opacity 0.15s;
 }
 
-.desc-row-editable:hover .row-edit-icon {
+.group-add-icon {
+  font-size: 14px;
+}
+
+.approval-date-edit-icon {
+  font-size: 11px;
+}
+
+.desc-row-editable:hover .row-edit-icon,
+.desc-row:hover .approval-date-edit-icon {
+  opacity: 1;
+}
+
+.group-header-row:hover .group-add-icon {
   opacity: 1;
 }
 
@@ -183,24 +186,21 @@
   flex-shrink: 0;
 }
 
+.desc-icon-save,
+.desc-icon-cancel {
+  cursor: pointer;
+  font-size: 15px;
+  transition: opacity 0.15s;
+}
+
 .desc-icon-save {
   color: #52c41a;
-  cursor: pointer;
-  font-size: 15px;
-  transition: opacity 0.15s;
 }
-
-.desc-icon-save:hover {
-  opacity: 0.7;
-}
-
 .desc-icon-cancel {
   color: #ff4d4f;
-  cursor: pointer;
-  font-size: 15px;
-  transition: opacity 0.15s;
 }
 
+.desc-icon-save:hover,
 .desc-icon-cancel:hover {
   opacity: 0.7;
 }
@@ -243,4 +243,16 @@
 .import-hint {
   color: #888;
   font-size: 12px;
+}
+
+.approval-date-picker input {
+  cursor: default !important;
+  color: rgba(0, 0, 0, 0.45) !important;
+  font-size: 12px !important;
+  padding: 0 !important;
+  width: 52px !important;
+}
+
+.approval-date-picker .ant-picker-suffix {
+  display: none;
 }

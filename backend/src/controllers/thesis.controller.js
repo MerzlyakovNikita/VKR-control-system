@@ -40,7 +40,9 @@ export const getAllTheses = async (req, res) => {
         rv.last_name   AS reviewer_last_name,
         rv.first_name  AS reviewer_first_name,
         rv.middle_name AS reviewer_middle_name,
+        appr_approved.approved_at,
         req.resolved_at,
+        appr.approval_comment,
         EXISTS(
           SELECT 1 FROM vkr_requests r
           WHERE r.vkr_id = v.id
@@ -61,6 +63,16 @@ export const getAllTheses = async (req, res) => {
         WHERE vkr_id = v.id AND resolved_at IS NOT NULL
         ORDER BY resolved_at DESC LIMIT 1
       ) req ON true
+      LEFT JOIN LATERAL (
+        SELECT comment AS approval_comment FROM vkr_requests
+        WHERE vkr_id = v.id AND type = 'APPROVAL' AND status = 'REJECTED'
+        ORDER BY resolved_at DESC NULLS LAST LIMIT 1
+      ) appr ON true
+      LEFT JOIN LATERAL (
+        SELECT resolved_at AS approved_at FROM vkr_requests
+        WHERE vkr_id = v.id AND type = 'APPROVAL' AND status = 'APPROVED'
+        ORDER BY resolved_at DESC LIMIT 1
+      ) appr_approved ON true
       ORDER BY g.name, s.last_name
     `,
       [req.user.id],
@@ -195,7 +207,7 @@ export const assignSupervisor = async (req, res) => {
         needsProfile: true,
       })
     }
-    if (!degree?.trim()) {
+    if (needsDegree(position) && !degree?.trim()) {
       return res.status(400).json({
         message: 'Для закрепления студентов необходимо указать учёную степень в профиле.',
         needsProfile: true,
@@ -378,6 +390,10 @@ export const setThesisSupervisor = async (req, res) => {
     if (vkrResult.rowCount === 0) return res.status(404).json({ message: 'ВКР не найдена' })
     const { id: vkrId, status: currentStatus } = vkrResult.rows[0]
 
+    if (!supervisor_id && currentStatus === 'APPROVED') {
+      return res.status(400).json({ message: 'Нельзя снять руководителя с утверждённой темы' })
+    }
+
     if (supervisor_id) {
       const profResult = await db.query('SELECT position, degree FROM users WHERE id = $1', [
         supervisor_id,
@@ -465,5 +481,142 @@ export const saveThesis = async (req, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Ошибка сохранения ВКР' })
+  }
+}
+
+export const submitApproval = async (req, res) => {
+  try {
+    const roles = req.user.roles || []
+    if (!roles.includes('THESIS_SUPERVISOR')) {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+
+    const { id } = req.params
+    const { rows } = await db.query(
+      `SELECT v.id AS vkr_id, v.status, v.supervisor_id
+       FROM students s
+       JOIN vkr v ON v.student_id = s.id
+       WHERE s.id = $1`,
+      [id],
+    )
+
+    if (rows.length === 0) return res.status(404).json({ message: 'ВКР не найдена' })
+    const vkr = rows[0]
+
+    if (vkr.supervisor_id !== req.user.id) {
+      return res.status(403).json({ message: 'Вы не являетесь руководителем этого студента' })
+    }
+
+    if (vkr.status !== 'ASSIGNED' && vkr.status !== 'REJECTED') {
+      return res.status(400).json({ message: 'Тема должна быть закреплена для отправки на утверждение' })
+    }
+
+    await db.query(
+      `INSERT INTO vkr_requests (vkr_id, supervisor_id, type, status) VALUES ($1, $2, 'APPROVAL', 'PENDING')`,
+      [vkr.vkr_id, req.user.id],
+    )
+
+    await db.query(
+      `UPDATE vkr SET status = 'ON_APPROVAL', updated_at = NOW() WHERE id = $1`,
+      [vkr.vkr_id],
+    )
+
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка отправки на утверждение' })
+  }
+}
+
+export const updateApprovalDate = async (req, res) => {
+  try {
+    if (!req.user.roles?.includes('HEAD_OF_DEPARTMENT')) {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+    const { date } = req.body
+    if (!date) return res.status(400).json({ message: 'Дата обязательна' })
+
+    const { rows } = await db.query(
+      `SELECT r.id FROM vkr_requests r
+       JOIN vkr v ON v.id = r.vkr_id
+       JOIN students s ON s.id = v.student_id
+       WHERE s.id = $1 AND r.type = 'APPROVAL' AND r.status = 'APPROVED'
+       ORDER BY r.resolved_at DESC LIMIT 1`,
+      [req.params.id],
+    )
+    if (rows.length === 0) return res.status(404).json({ message: 'Запись об утверждении не найдена' })
+
+    await db.query('UPDATE vkr_requests SET resolved_at = $1 WHERE id = $2', [date, rows[0].id])
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка обновления даты утверждения' })
+  }
+}
+
+export const getApprovalHistory = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT r.comment, r.resolved_at
+       FROM vkr_requests r
+       JOIN vkr v ON v.id = r.vkr_id
+       JOIN students s ON s.id = v.student_id
+       WHERE s.id = $1 AND r.type = 'APPROVAL' AND r.status = 'REJECTED' AND r.comment IS NOT NULL
+       ORDER BY r.resolved_at DESC`,
+      [req.params.id],
+    )
+    res.json(rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка загрузки истории отклонений' })
+  }
+}
+
+export const directApprove = async (req, res) => {
+  try {
+    if (!req.user.roles?.includes('HEAD_OF_DEPARTMENT')) {
+      return res.status(403).json({ message: 'Нет доступа' })
+    }
+
+    const { rows } = await db.query(
+      `SELECT v.id AS vkr_id, v.status, v.supervisor_id
+       FROM students s JOIN vkr v ON v.student_id = s.id WHERE s.id = $1`,
+      [req.params.id],
+    )
+
+    if (rows.length === 0) return res.status(404).json({ message: 'ВКР не найдена' })
+    const vkr = rows[0]
+
+    if (vkr.status !== 'ASSIGNED' && vkr.status !== 'REJECTED') {
+      return res.status(400).json({ message: 'Утвердить можно только тему со статусом «Закреплена» или «Отклонена»' })
+    }
+
+    await db.query(
+      `UPDATE vkr SET status = 'APPROVED', updated_at = NOW() WHERE id = $1`,
+      [vkr.vkr_id],
+    )
+    await db.query(
+      `INSERT INTO vkr_requests (vkr_id, supervisor_id, type, status, resolved_at)
+       VALUES ($1, $2, 'APPROVAL', 'APPROVED', NOW())`,
+      [vkr.vkr_id, vkr.supervisor_id],
+    )
+
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка утверждения темы' })
+  }
+}
+
+export const getDefenseDatesByGroup = async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT * FROM defense_dates WHERE group_id = $1 ORDER BY defense_date',
+      [req.params.groupId],
+    )
+    res.json(result.rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Ошибка загрузки дат защиты' })
   }
 }

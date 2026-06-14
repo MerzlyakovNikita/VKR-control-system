@@ -1,12 +1,12 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Table, Button, Modal, message, Tag, Empty, Typography, Tooltip } from 'antd'
+import { Table, Button, Modal, Input, message, Empty, Typography, Tooltip } from 'antd'
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import { api } from '../../shared/api/axios'
 import './AssignmentRequestsPage.css'
 
 const { Text, Paragraph } = Typography
 
-interface AssignmentRequest {
+interface ApprovalRequest {
   id: number
   created_at: string
   topic: string | null
@@ -31,7 +31,7 @@ interface HeaderRow {
   supervisor_student_count: number
 }
 
-interface StudentRow extends AssignmentRequest {
+interface StudentRow extends ApprovalRequest {
   _isHeader: false
 }
 
@@ -57,22 +57,24 @@ const supShort = (item: {
 
 const COL_COUNT = 3
 
-export default function AssignmentRequestsPage() {
-  const [requests, setRequests] = useState<AssignmentRequest[]>([])
+export default function ApprovalRequestsPage() {
+  const [requests, setRequests] = useState<ApprovalRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [rejectModal, setRejectModal] = useState<{
     open: boolean
     item: StudentRow | null
+    comment: string
   }>({
     open: false,
     item: null,
+    comment: '',
   })
   const [rejectLoading, setRejectLoading] = useState(false)
 
   const load = async () => {
     setLoading(true)
     try {
-      const { data } = await api.get('/requests/assignment')
+      const { data } = await api.get('/requests/approval')
       setRequests(data)
     } catch {
       message.error('Ошибка загрузки заявок')
@@ -107,43 +109,46 @@ export default function AssignmentRequestsPage() {
     return result
   }, [requests])
 
-  const handleApprove = (item: AssignmentRequest) => {
+  const handleApprove = (item: ApprovalRequest) => {
     Modal.confirm({
-      title: 'Одобрить заявку?',
+      title: 'Утвердить тему ВКР?',
       content: (
         <span>
-          <strong>{supShort(item)}</strong> станет руководителем ВКР студента{' '}
+          Тема студента{' '}
           <strong>
             {shortFio(item.student_last_name, item.student_first_name, item.student_middle_name)}
-          </strong>
+          </strong>{' '}
+          будет утверждена.
         </span>
       ),
-      okText: 'Одобрить',
+      okText: 'Утвердить',
       cancelText: 'Отмена',
       onOk: async () => {
         try {
-          await api.post(`/requests/assignment/${item.id}/approve`)
-          message.success('Заявка одобрена')
+          await api.post(`/requests/approval/${item.id}/approve`)
+          message.success('Тема утверждена')
           load()
           window.dispatchEvent(new CustomEvent('requests-updated'))
         } catch {
-          message.error('Ошибка одобрения')
+          message.error('Ошибка утверждения')
         }
       },
     })
   }
 
   const handleReject = (item: StudentRow) => {
-    setRejectModal({ open: true, item })
+    setRejectModal({ open: true, item, comment: '' })
   }
 
   const doReject = async () => {
     if (!rejectModal.item) return
     setRejectLoading(true)
     try {
-      await api.post(`/requests/assignment/${rejectModal.item.id}/reject`)
-      message.success('Заявка отклонена')
-      setRejectModal({ open: false, item: null })
+      await api.post(`/requests/approval/${rejectModal.item.id}/reject`, {
+        comment: rejectModal.comment.trim() || null,
+      })
+      message.success('Тема отклонена')
+      setRejectModal({ open: false, item: null, comment: '' })
       load()
       window.dispatchEvent(new CustomEvent('requests-updated'))
     } catch {
@@ -161,12 +166,9 @@ export default function AssignmentRequestsPage() {
       onCell: (row: RowData) => (row._isHeader ? { colSpan: COL_COUNT } : {}),
       render: (row: RowData) => {
         if (row._isHeader) {
-          const count = Number(row.supervisor_student_count)
-          const tagColor = count >= 10 ? 'red' : count >= 6 ? 'orange' : 'green'
           return (
             <div className="supervisor-header-cell">
               <span>{supFio(row)}</span>
-              <Tag color={tagColor}>Студентов закреплено: {count}</Tag>
             </div>
           )
         }
@@ -218,7 +220,7 @@ export default function AssignmentRequestsPage() {
               type="primary"
               icon={<CheckOutlined />}
               size="small"
-              title="Одобрить"
+              title="Утвердить"
               onClick={() => handleApprove(item)}
             />
             <Button
@@ -265,22 +267,37 @@ export default function AssignmentRequestsPage() {
     <div className="assignment-requests-page">
       <Modal
         open={rejectModal.open}
-        title="Отклонить заявку?"
+        title="Отклонить тему ВКР?"
         okText="Отклонить"
         okButtonProps={{ danger: true, loading: rejectLoading }}
         cancelText="Отмена"
         onOk={doReject}
-        onCancel={() => setRejectModal({ open: false, item: null })}
+        onCancel={() => setRejectModal({ open: false, item: null, comment: '' })}
       >
         {rejectModal.item && (
           <p className="reject-modal-text">
-            Заявка от руководителя <strong>{supShort(rejectModal.item)}</strong> будет отклонена.
+            Тема студента{' '}
+            <strong>
+              {shortFio(
+                rejectModal.item.student_last_name,
+                rejectModal.item.student_first_name,
+                rejectModal.item.student_middle_name,
+              )}
+            </strong>{' '}
+            (рук.{' '}
+            <strong>{supShort(rejectModal.item)}</strong>) будет отклонена.
           </p>
         )}
+        <Input.TextArea
+          placeholder="Причина отказа (необязательно)"
+          rows={3}
+          value={rejectModal.comment}
+          onChange={(e) => setRejectModal((prev) => ({ ...prev, comment: e.target.value }))}
+        />
       </Modal>
 
       {requests.length === 0 && !loading ? (
-        <Empty description="Заявок на закрепление нет" />
+        <Empty description="Заявок на утверждение нет" />
       ) : (
         <Table
           dataSource={tableData}

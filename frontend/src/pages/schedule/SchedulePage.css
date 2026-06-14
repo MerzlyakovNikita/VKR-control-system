@@ -1,0 +1,42 @@
+.schedule-page {
+  padding: 16px;
+}
+
+.schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.schedule-header .ant-typography {
+  margin: 0;
+}
+
+.schedule-alert {
+  margin-bottom: 16px;
+}
+
+.schedule-mapping-list {
+  margin-top: 8px;
+}
+
+.schedule-mapping-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.schedule-mapping-label {
+  min-width: 140px;
+}
+
+.schedule-mapping-select {
+  flex: 1;
+  max-width: 300px;
+}
+
+.schedule-mapping-actions {
+  margin-top: 8px;
+}

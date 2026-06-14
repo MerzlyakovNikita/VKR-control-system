@@ -3,12 +3,14 @@ import { MainLayout } from '../layouts/MainLayout'
 import LoginPage from '../../pages/auth/LoginPage'
 import RegisterPage from '../../pages/auth/RegisterPage'
 import ProfilePage from '../../pages/profile/ProfilePage'
-import GroupsPage from '../../pages/secretary/GroupsPage'
+import GroupsPage from '../../pages/groups/GroupsPage'
 import ThesesPage from '../../pages/theses/ThesesPage'
 import AdministrationPage from '../../pages/secretary/AdministrationPage'
 import AssignmentRequestsPage from '../../pages/head/AssignmentRequestsPage'
+import ApprovalRequestsPage from '../../pages/head/ApprovalRequestsPage'
 import DirectionsPage from '../../pages/secretary/DirectionsPage'
 import ReviewersPage from '../../pages/reviewers/ReviewersPage'
+import SchedulePage from '../../pages/schedule/SchedulePage'
 import { ProtectedRoute } from '../providers/ProtectedRoute'
 
 export const AppRouter = () => {
@@ -75,10 +77,28 @@ export const AppRouter = () => {
         />
 
         <Route
+          path="schedule"
+          element={
+            <ProtectedRoute roles={['SECRETARY', 'HEAD_OF_DEPARTMENT']}>
+              <SchedulePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="requests/assignment"
           element={
             <ProtectedRoute roles={['HEAD_OF_DEPARTMENT']}>
               <AssignmentRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="requests/approval"
+          element={
+            <ProtectedRoute roles={['HEAD_OF_DEPARTMENT']}>
+              <ApprovalRequestsPage />
             </ProtectedRoute>
           }
         />

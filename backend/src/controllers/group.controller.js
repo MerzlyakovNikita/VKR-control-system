@@ -1,4 +1,9 @@
 import { db } from '../db/index.js'
+import { getCurrentGraduationYear } from '../shared/graduationYear.js'
+
+export const getCurrentYear = (_req, res) => {
+  res.json({ year: getCurrentGraduationYear() })
+}
 
 export const createGroup = async (req, res) => {
   try {

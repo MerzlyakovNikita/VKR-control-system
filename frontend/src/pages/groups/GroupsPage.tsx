@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Modal, Form, Input, Select, Card, message, Row, Col, Empty, InputNumber } from 'antd'
 import { api } from '../../shared/api/axios'
+import { hasRole } from '../../shared/lib/auth'
 import './GroupsPage.css'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -19,12 +20,8 @@ import {
 
 const { Search } = Input
 
-const getDefaultYear = () => {
-  const now = new Date()
-  return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
-}
-
 export default function GroupsPage() {
+  const isSecretary = hasRole('SECRETARY')
   const [groups, setGroups] = useState<any[]>([])
   const [directions, setDirections] = useState<any[]>([])
   const [profiles, setProfiles] = useState<any[]>([])
@@ -32,7 +29,7 @@ export default function GroupsPage() {
   const [form] = Form.useForm()
   const [search, setSearch] = useState('')
   const [editingGroup, setEditingGroup] = useState<any | null>(null)
-  const [yearFilter, setYearFilter] = useState<number | null>(getDefaultYear)
+  const [yearFilter, setYearFilter] = useState<number | null>(null)
   const navigate = useNavigate()
 
   const loadGroups = async () => {
@@ -56,6 +53,7 @@ export default function GroupsPage() {
   useEffect(() => {
     loadGroups()
     loadDirections()
+    api.get('/groups/current-year').then(({ data }) => setYearFilter(data.year)).catch(() => {})
   }, [])
 
   const handleDirectionChange = async (directionId: number) => {
@@ -170,7 +168,7 @@ export default function GroupsPage() {
                       <div className="group-card-icons">
                         <SelectOutlined
                           className="navigate-icon"
-                          onClick={() => navigate(`/theses?group=${encodeURIComponent(g.name)}`)}
+                          onClick={() => navigate(`/theses?group=${encodeURIComponent(g.name)}&graduation_year=${g.graduation_year}`)}
                         />
                         <EditOutlined className="edit-icon" onClick={() => handleEdit(g)} />
                         <DeleteOutlined
@@ -216,9 +214,11 @@ export default function GroupsPage() {
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)} block>
                 Добавить группу
               </Button>
-              <Button icon={<ApartmentOutlined />} onClick={() => navigate('/directions')} block>
-                Направления подготовки
-              </Button>
+              {isSecretary && (
+                <Button icon={<ApartmentOutlined />} onClick={() => navigate('/directions')} block>
+                  Направления подготовки
+                </Button>
+              )}
             </div>
           </Card>
         </Col>
@@ -287,7 +287,7 @@ export default function GroupsPage() {
             <InputNumber
               min={2020}
               max={2100}
-              placeholder={String(getDefaultYear())}
+              placeholder={String(yearFilter ?? new Date().getFullYear())}
               style={{ width: '100%' }}
             />
           </Form.Item>

@@ -1,7 +1,9 @@
-import { Form, Input, Button, Card, message } from 'antd'
+import { Form, Input, Button, Card, message, Typography } from 'antd'
 import { api } from '../../shared/api/axios'
 import { useNavigate } from 'react-router-dom'
 import './AuthPage.css'
+
+const { Text } = Typography
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -46,7 +48,11 @@ export default function LoginPage() {
             Войти
           </Button>
 
-          <Button type="link" block onClick={() => navigate('/register')} style={{ marginTop: 8 }}>
+          <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginTop: 12, fontSize: 12 }}>
+            Забыли пароль? Обратитесь к секретарю кафедры
+          </Text>
+
+          <Button type="link" block onClick={() => navigate('/register')} style={{ marginTop: 4 }}>
             Нет аккаунта? Зарегистрироваться
           </Button>
         </Form>

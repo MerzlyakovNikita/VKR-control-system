@@ -1,6 +1,20 @@
-import { useEffect, useState, useMemo, type ReactNode } from 'react'
+import { useEffect, useState, useMemo, useRef, type ReactNode } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Table, Input, Select, Button, Tag, message, Modal, Upload, Switch } from 'antd'
+import {
+  Table,
+  Input,
+  Select,
+  Button,
+  Tag,
+  message,
+  Modal,
+  Upload,
+  Switch,
+  Popover,
+  Spin,
+  Badge,
+  DatePicker,
+} from 'antd'
 import type { UploadFile } from 'antd'
 import dayjs from 'dayjs'
 import {
@@ -15,6 +29,7 @@ import {
   ImportOutlined,
   UploadOutlined,
   PlusOutlined,
+  BellOutlined,
 } from '@ant-design/icons'
 import { api } from '../../shared/api/axios'
 import { hasRole, getUser } from '../../shared/lib/auth'
@@ -46,6 +61,7 @@ function EditableRow({
   value,
   displayValue,
   multiline,
+  disabled,
   onSave,
   validate,
   renderDisplay,
@@ -54,6 +70,7 @@ function EditableRow({
   value?: string | null
   displayValue?: string | null
   multiline?: boolean
+  disabled?: boolean
   onSave: (value: string) => Promise<void>
   validate?: (value: string) => string | null
   renderDisplay?: (value: string | null | undefined) => ReactNode
@@ -92,7 +109,9 @@ function EditableRow({
   }
 
   return (
-    <div className={`desc-row desc-row-editable${editing ? ' desc-row-active' : ''}`}>
+    <div
+      className={`desc-row${!disabled ? ' desc-row-editable' : ''}${editing ? ' desc-row-active' : ''}`}
+    >
       <div className="desc-label">{label}</div>
       <div className="desc-value">
         {editing ? (
@@ -132,7 +151,9 @@ function EditableRow({
         ) : (
           <div className="desc-display">
             {renderDisplay ? renderDisplay(value) : <span>{displayValue ?? value ?? '—'}</span>}
-            <EditOutlined className="row-edit-icon" onClick={() => setEditing(true)} />
+            {!disabled && (
+              <EditOutlined className="row-edit-icon" onClick={() => setEditing(true)} />
+            )}
           </div>
         )}
         {error && <div className="desc-field-error">{error}</div>}
@@ -307,8 +328,11 @@ function SupervisorRow({
   isHead,
   isSupervisor,
   hasPendingRequest,
+  canAssign,
+  canClear,
   onSaveAsHead,
   onAssign,
+  onGoToRequests,
 }: {
   supervisorFio: string
   supervisorId: number | null
@@ -317,8 +341,11 @@ function SupervisorRow({
   isHead: boolean
   isSupervisor: boolean
   hasPendingRequest: boolean
+  canAssign: boolean
+  canClear: boolean
   onSaveAsHead: (id: number | null) => Promise<void>
   onAssign: () => void
+  onGoToRequests: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [selected, setSelected] = useState<number | null>(supervisorId)
@@ -364,7 +391,7 @@ function SupervisorRow({
               value={selected}
               onChange={(v) => setSelected(v ?? null)}
               options={options}
-              allowClear
+              allowClear={canClear}
               showSearch
               optionFilterProp="label"
               placeholder="Выберите руководителя"
@@ -385,6 +412,7 @@ function SupervisorRow({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isSupervisor &&
                 !isHead &&
+                canAssign &&
                 supervisorId !== currentUserId &&
                 (hasPendingRequest ? (
                   <Button size="small" disabled>
@@ -395,6 +423,11 @@ function SupervisorRow({
                     Закрепить за собой
                   </Button>
                 ))}
+              {isHead && hasPendingRequest && (
+                <Button size="small" onClick={onGoToRequests}>
+                  Заявка
+                </Button>
+              )}
               {isHead && (
                 <EditOutlined className="row-edit-icon" onClick={() => setEditing(true)} />
               )}
@@ -421,14 +454,16 @@ export default function ThesesPage() {
   })
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [yearFilter, setYearFilter] = useState<number | null>(() => {
-    const now = new Date()
-    return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
+    const y = searchParams.get('graduation_year')
+    return y ? parseInt(y, 10) : null
   })
   const [loading, setLoading] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [reviewers, setReviewers] = useState<{ id: number; fio: string }[]>([])
   const [groupDefenseDates, setGroupDefenseDates] = useState<any[]>([])
-  const [allGroupsFull, setAllGroupsFull] = useState<{ id: number; name: string; graduation_year: number }[]>([])
+  const [allGroupsFull, setAllGroupsFull] = useState<
+    { id: number; name: string; graduation_year: number }[]
+  >([])
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [importGroupId, setImportGroupId] = useState<number | null>(null)
   const [importFileList, setImportFileList] = useState<UploadFile[]>([])
@@ -459,6 +494,12 @@ export default function ThesesPage() {
   const isSupervisor = hasRole('THESIS_SUPERVISOR')
   const currentUserId = getUser()?.id
   const [onlyMine, setOnlyMine] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
+  const [bellHistory, setBellHistory] = useState<{ comment: string; resolved_at: string }[]>([])
+  const [bellLoading, setBellLoading] = useState(false)
+  const [bellStudentId, setBellStudentId] = useState<number | null>(null)
+  const approvalDatePickerRef = useRef<any>(null)
+  const [approvalDatePickerOpen, setApprovalDatePickerOpen] = useState(false)
 
   const loadTheses = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -479,7 +520,9 @@ export default function ThesesPage() {
       const { data } = await api.get('/groups')
       const sorted = [...data].sort((a: any, b: any) => a.name.localeCompare(b.name, 'ru'))
       setAllGroups(sorted.map((g: any) => ({ name: g.name, graduation_year: g.graduation_year })))
-      setAllGroupsFull(sorted.map((g: any) => ({ id: g.id, name: g.name, graduation_year: g.graduation_year })))
+      setAllGroupsFull(
+        sorted.map((g: any) => ({ id: g.id, name: g.name, graduation_year: g.graduation_year })),
+      )
     } catch {
       message.error('Ошибка загрузки групп')
     }
@@ -511,8 +554,7 @@ export default function ThesesPage() {
           fio: [u.last_name, u.first_name, u.middle_name].filter(Boolean).join(' '),
         })),
       )
-    } catch {
-    }
+    } catch {}
   }
 
   const handleSupervisorSave = async (supervisorId: number | null) => {
@@ -546,7 +588,10 @@ export default function ThesesPage() {
 
   const handleProfileFillAndSave = async () => {
     if (!profileFillModal.supervisorId || !selectedStudent) return
-    if (!profileFillModal.position || !profileFillModal.degree) {
+    if (
+      !profileFillModal.position ||
+      (hasDegree(profileFillModal.position) && !profileFillModal.degree)
+    ) {
       message.warning('Укажите должность и учёную степень')
       return
     }
@@ -648,6 +693,88 @@ export default function ThesesPage() {
     } catch {
       message.error('Ошибка при назначении рецензента')
     }
+  }
+
+  useEffect(() => {
+    setBellOpen(false)
+    setBellHistory([])
+    setBellStudentId(null)
+  }, [selectedStudent?.id])
+
+  const handleOpenBell = async () => {
+    if (!selectedStudent || bellStudentId === selectedStudent.id) return
+    setBellLoading(true)
+    setBellHistory([])
+    try {
+      const { data } = await api.get(`/thesis/student/${selectedStudent.id}/approval-history`)
+      setBellHistory(data)
+      setBellStudentId(selectedStudent.id)
+    } catch {
+      message.error('Ошибка загрузки истории отклонений')
+    } finally {
+      setBellLoading(false)
+    }
+  }
+
+  const handleSubmitApproval = (studentId: number, isResubmit = false) => {
+    Modal.confirm({
+      title: isResubmit
+        ? 'Отправить тему повторно на утверждение?'
+        : 'Отправить тему на утверждение?',
+      content:
+        'После отправки изменение данных ВКР будет заблокировано до решения заведующего кафедрой.',
+      okText: 'Отправить',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          await api.post(`/thesis/student/${studentId}/submit-approval`)
+          message.success('Тема отправлена на утверждение')
+          const fresh = await loadTheses(true)
+          if (fresh) {
+            const student = fresh.find((t: any) => t.id === studentId)
+            if (student) setSelectedStudent(student)
+          }
+        } catch (err: any) {
+          message.error(err.response?.data?.message ?? 'Ошибка при отправке')
+        }
+      },
+    })
+  }
+
+  const handleUpdateApprovalDate = async (studentId: number, date: dayjs.Dayjs) => {
+    try {
+      await api.patch(`/thesis/student/${studentId}/approval-date`, { date: date.toISOString() })
+      message.success('Дата утверждения обновлена')
+      const fresh = await loadTheses(true)
+      if (fresh) {
+        const student = fresh.find((t: any) => t.id === studentId)
+        if (student) setSelectedStudent(student)
+      }
+    } catch {
+      message.error('Ошибка при обновлении даты')
+    }
+  }
+
+  const handleDirectApprove = (studentId: number) => {
+    Modal.confirm({
+      title: 'Утвердить тему?',
+      content: 'Тема будет переведена в статус «Утверждена» без отправки заявки.',
+      okText: 'Утвердить',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          await api.post(`/thesis/student/${studentId}/direct-approve`)
+          message.success('Тема утверждена')
+          const fresh = await loadTheses(true)
+          if (fresh) {
+            const student = fresh.find((t: any) => t.id === studentId)
+            if (student) setSelectedStudent(student)
+          }
+        } catch (err: any) {
+          message.error(err.response?.data?.message ?? 'Ошибка при утверждении')
+        }
+      },
+    })
   }
 
   const handleAssign = () => {
@@ -810,6 +937,12 @@ export default function ThesesPage() {
     loadGroups()
     loadReviewers()
     loadThesisSupervisors()
+    if (!searchParams.get('graduation_year')) {
+      api
+        .get('/groups/current-year')
+        .then(({ data }) => setYearFilter(data.year))
+        .catch(() => {})
+    }
   }, [])
 
   const filtered = theses.filter((t) => {
@@ -846,9 +979,10 @@ export default function ThesesPage() {
       if (groupFilter.length > 0 && !groupFilter.includes(g.name)) return false
       return true
     })
+    const hasActiveFilter = onlyMine || !!search || statusFilter.length > 0
     for (const group of visibleGroups) {
       const groupRows = filtered.filter((t) => t.group_name === group.name)
-      if (onlyMine && groupRows.length === 0) continue
+      if (hasActiveFilter && groupRows.length === 0) continue
       rows.push({
         _isGroupHeader: true,
         _groupName: group.name,
@@ -959,16 +1093,20 @@ export default function ThesesPage() {
     },
     {
       title: 'Статус темы',
-      dataIndex: 'status',
       key: 'status',
-      width: 140,
+      width: 150,
       onCell: dataCell,
-      render: (status: string) => {
-        if (!status) return <span className="no-data">—</span>
-        const s = VKR_STATUS_LABELS[status] || { label: status, color: 'default' }
+      render: (_: any, row: any) => {
+        if (!row.status) return <span className="no-data">—</span>
+        const s = VKR_STATUS_LABELS[row.status] || { label: row.status, color: 'default' }
         return (
           <div style={{ textAlign: 'center' }}>
             <Tag color={s.color}>{s.label}</Tag>
+            {row.status === 'APPROVED' && row.approved_at && (
+              <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: 11, marginTop: 2 }}>
+                {dayjs(row.approved_at).format('DD.MM.YY')}
+              </div>
+            )}
           </div>
         )
       },
@@ -1038,7 +1176,22 @@ export default function ThesesPage() {
           <Button
             type="primary"
             icon={<FileTextOutlined />}
-            onClick={() => message.info('Формирование приказа...')}
+            onClick={async () => {
+              try {
+                const { data } = await api.get('/documents/theses-order', {
+                  params: { year: yearFilter || undefined },
+                  responseType: 'blob',
+                })
+                const url = URL.createObjectURL(new Blob([data]))
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `Приказ_темы_${yearFilter}.docx`
+                link.click()
+                URL.revokeObjectURL(url)
+              } catch {
+                message.error('Ошибка формирования приказа')
+              }
+            }}
           >
             Сформировать приказ
           </Button>
@@ -1065,9 +1218,67 @@ export default function ThesesPage() {
         onCancel={() => setSelectedStudent(null)}
         footer={null}
         title={
-          <div className="student-modal-title">
-            <span>Профиль студента</span>
-            <DeleteOutlined className="student-modal-delete" onClick={handleDeleteStudent} />
+          <div style={{ display: 'flex', alignItems: 'center', paddingRight: 36 }}>
+            <div className="student-modal-title" style={{ flex: 1 }}>
+              <span>Профиль студента</span>
+              <DeleteOutlined className="student-modal-delete" onClick={handleDeleteStudent} />
+            </div>
+            {selectedStudent?.approval_comment && (
+              <Popover
+                open={bellOpen}
+                onOpenChange={(open) => {
+                  setBellOpen(open)
+                  if (open) handleOpenBell()
+                }}
+                trigger="click"
+                title="История отклонений"
+                placement="bottomRight"
+                getPopupContainer={(trigger) =>
+                  (trigger.closest('.ant-modal-content') as HTMLElement) ?? document.body
+                }
+                content={
+                  bellLoading ? (
+                    <div style={{ padding: '8px 0', textAlign: 'center' }}>
+                      <Spin size="small" />
+                    </div>
+                  ) : bellHistory.length === 0 ? (
+                    <span style={{ color: '#bfbfbf' }}>Нет записей</span>
+                  ) : (
+                    <div
+                      style={{
+                        maxWidth: 320,
+                        maxHeight: 260,
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                      }}
+                    >
+                      {bellHistory.map((item, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            borderBottom: i < bellHistory.length - 1 ? '1px solid #f0f0f0' : 'none',
+                            paddingBottom: i < bellHistory.length - 1 ? 10 : 0,
+                          }}
+                        >
+                          <div style={{ color: '#888', fontSize: 12 }}>
+                            {dayjs(item.resolved_at).format('DD.MM.YYYY HH:mm')}
+                          </div>
+                          <div style={{ marginTop: 3 }}>{item.comment}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                }
+              >
+                <Badge dot offset={[-2, 2]}>
+                  <BellOutlined
+                    style={{ fontSize: 15, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' }}
+                  />
+                </Badge>
+              </Popover>
+            )}
           </div>
         }
         width={800}
@@ -1087,21 +1298,49 @@ export default function ThesesPage() {
               .join(' ')
             const status = s.status ? VKR_STATUS_LABELS[s.status] : null
             const save = (field: string) => (value: string) => handleFieldSave(field, value)
+            const supervisorLocked =
+              isSupervisor &&
+              !isHead &&
+              ((s.supervisor_id !== null && s.supervisor_id !== currentUserId) ||
+                s.status === 'ON_APPROVAL' ||
+                s.status === 'APPROVED')
+            const canSubmitApproval =
+              isSupervisor &&
+              !isHead &&
+              s.supervisor_id === currentUserId &&
+              (s.status === 'ASSIGNED' || s.status === 'REJECTED')
             return (
               <>
                 <div className="desc-table">
-                  <EditableRow label="Фамилия" value={s.last_name} onSave={save('last_name')} />
-                  <EditableRow label="Имя" value={s.first_name} onSave={save('first_name')} />
+                  <EditableRow
+                    label="Фамилия"
+                    value={s.last_name}
+                    disabled={supervisorLocked}
+                    onSave={save('last_name')}
+                  />
+                  <EditableRow
+                    label="Имя"
+                    value={s.first_name}
+                    disabled={supervisorLocked}
+                    onSave={save('first_name')}
+                  />
                   <EditableRow
                     label="Отчество"
                     value={s.middle_name}
+                    disabled={supervisorLocked}
                     onSave={save('middle_name')}
                   />
-                  <EditableRow label="Email" value={s.email} onSave={save('email')} />
+                  <EditableRow
+                    label="Email"
+                    value={s.email}
+                    disabled={supervisorLocked}
+                    onSave={save('email')}
+                  />
                   <EditableRow
                     label="Телефон"
                     value={s.phone}
                     displayValue={formatPhone(s.phone)}
+                    disabled={supervisorLocked}
                     onSave={save('phone')}
                     validate={(v) => {
                       if (!v.trim()) return null
@@ -1116,12 +1355,25 @@ export default function ThesesPage() {
 
                 <div className="desc-section-title">ВКР</div>
                 <div className="desc-table">
-                  <EditableRow label="Тема" value={s.topic} multiline onSave={save('topic')} />
-                  <EditableRow label="Цель" value={s.goal} multiline onSave={save('goal')} />
+                  <EditableRow
+                    label="Тема"
+                    value={s.topic}
+                    multiline
+                    disabled={supervisorLocked}
+                    onSave={save('topic')}
+                  />
+                  <EditableRow
+                    label="Цель"
+                    value={s.goal}
+                    multiline
+                    disabled={supervisorLocked}
+                    onSave={save('goal')}
+                  />
                   <EditableRow
                     label="Задачи"
                     value={s.tasks}
                     multiline
+                    disabled={supervisorLocked}
                     onSave={save('tasks')}
                     renderDisplay={(v) =>
                       v ? (
@@ -1141,11 +1393,69 @@ export default function ThesesPage() {
                     }
                   />
                   <StaticRow label="Статус">
-                    {status ? (
-                      <span>
-                        <Tag color={status.color}>{status.label}</Tag>
+                    <div className="desc-display">
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {status ? (
+                          <Tag color={status.color} style={{ margin: 0 }}>
+                            {status.label}
+                          </Tag>
+                        ) : (
+                          '—'
+                        )}
+                        {s.status === 'APPROVED' &&
+                          s.approved_at &&
+                          (isHead ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <DatePicker
+                                ref={approvalDatePickerRef}
+                                open={approvalDatePickerOpen}
+                                onOpenChange={(o) => {
+                                  if (!o) setApprovalDatePickerOpen(false)
+                                }}
+                                value={dayjs(s.approved_at)}
+                                onChange={(date) => {
+                                  if (!date || dayjs(s.approved_at).isSame(date, 'day')) return
+                                  handleUpdateApprovalDate(s.id, date)
+                                }}
+                                format="DD.MM.YY"
+                                size="small"
+                                variant="borderless"
+                                allowClear={false}
+                                suffixIcon={null}
+                                className="approval-date-picker"
+                              />
+                              <EditOutlined
+                                className="approval-date-edit-icon"
+                                onClick={() => setApprovalDatePickerOpen(true)}
+                              />
+                            </span>
+                          ) : (
+                            <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
+                              {dayjs(s.approved_at).format('DD.MM.YY')}
+                            </span>
+                          ))}
                       </span>
-                    ) : null}
+                      {canSubmitApproval && (
+                        <Button
+                          size="small"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => handleSubmitApproval(s.id, s.status === 'REJECTED')}
+                        >
+                          {s.status === 'REJECTED'
+                            ? 'Отправить повторно'
+                            : 'Отправить на утверждение'}
+                        </Button>
+                      )}
+                      {isHead && (s.status === 'ASSIGNED' || s.status === 'REJECTED') && (
+                        <Button
+                          size="small"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => handleDirectApprove(s.id)}
+                        >
+                          Утвердить
+                        </Button>
+                      )}
+                    </div>
                   </StaticRow>
                   <SupervisorRow
                     supervisorFio={supervisorFio}
@@ -1155,8 +1465,14 @@ export default function ThesesPage() {
                     isHead={isHead}
                     isSupervisor={isSupervisor}
                     hasPendingRequest={!!s.has_pending_request}
+                    canAssign={s.status === 'UNASSIGNED'}
+                    canClear={s.status !== 'APPROVED'}
                     onSaveAsHead={handleSupervisorSave}
                     onAssign={handleAssign}
+                    onGoToRequests={() => {
+                      setSelectedStudent(null)
+                      navigate('/requests/assignment')
+                    }}
                   />
                   {s.education_level === 'MASTER' && (
                     <ReviewerRow
@@ -1168,27 +1484,33 @@ export default function ThesesPage() {
                       reviewerId={s.reviewer_id}
                       reviewers={reviewers}
                       onSave={handleReviewerSave}
-                      onGenerate={() => handleGenerateDirection(s.id, s.last_name, s.first_name, s.middle_name)}
+                      onGenerate={() =>
+                        handleGenerateDirection(s.id, s.last_name, s.first_name, s.middle_name)
+                      }
                       canEdit={isHead}
                     />
                   )}
                   <EditableRow
                     label="Место выполнения"
                     value={s.practice_place}
+                    disabled={supervisorLocked}
                     onSave={save('practice_place')}
                   />
                   <EditableRow
                     label="Руководитель от предприятия"
                     value={s.company_supervisor}
+                    disabled={supervisorLocked}
                     onSave={save('company_supervisor')}
                   />
-                  <DefenseDateRow
-                    value={s.defense_date}
-                    dateId={s.defense_date_id}
-                    options={groupDefenseDates}
-                    onSave={handleDefenseDateSave}
-                    canEdit={isHead || isSecretary}
-                  />
+                  {s.status === 'APPROVED' && (
+                    <DefenseDateRow
+                      value={s.defense_date}
+                      dateId={s.defense_date_id}
+                      options={groupDefenseDates}
+                      onSave={handleDefenseDateSave}
+                      canEdit={isHead || isSecretary}
+                    />
+                  )}
                 </div>
               </>
             )
