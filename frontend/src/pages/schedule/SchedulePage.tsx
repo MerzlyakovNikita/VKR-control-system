@@ -94,6 +94,7 @@ export default function SchedulePage() {
       const parts = []
       if (data.inserted) parts.push(`добавлено: ${data.inserted}`)
       if (data.updated) parts.push(`обновлено: ${data.updated}`)
+      if (data.removed) parts.push(`удалено: ${data.removed}`)
       message.success(`Импорт завершён${parts.length ? ` (${parts.join(', ')})` : ''}`)
       setPendingFile(null)
       setMissingGroups([])

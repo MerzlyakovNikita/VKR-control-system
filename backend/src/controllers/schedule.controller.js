@@ -40,7 +40,7 @@ function parseDocx(buffer) {
     if (dateParts.length !== 3) continue
 
     const month = parseInt(dateParts[1], 10)
-    if (month !== 6) continue
+    if (![5, 6, 7].includes(month)) continue
 
     const year = dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2]
 
@@ -68,7 +68,7 @@ export const importSchedule = async (req, res) => {
     }
 
     if (entries.length === 0) {
-      return res.status(400).json({ message: 'Не найдено строк с защитой ВКР в июне' })
+      return res.status(400).json({ message: 'Не найдено строк с защитой ВКР в мае-июле' })
     }
 
     const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {}
@@ -76,19 +76,38 @@ export const importSchedule = async (req, res) => {
       if (mapping[e.group]) e.group = mapping[e.group]
     }
 
+    const scheduleYear = parseInt(entries[0].date.slice(0, 4), 10)
+
     const groupNames = [...new Set(entries.map((e) => e.group))]
     const { rows: foundGroups } = await db.query(
-      'SELECT id, name FROM groups WHERE name = ANY($1)',
-      [groupNames],
+      'SELECT id, name FROM groups WHERE name = ANY($1) AND graduation_year = $2',
+      [groupNames, scheduleYear],
     )
 
     const missing = groupNames.filter((n) => !foundGroups.some((g) => g.name === n))
     if (missing.length > 0) {
-      const scheduleYear = parseInt(entries[0].date.slice(0, 4), 10)
       return res.status(400).json({ message: 'Группы не найдены в системе', missing, scheduleYear })
     }
 
     const groupMap = Object.fromEntries(foundGroups.map((g) => [g.name, g.id]))
+    const groupIds = foundGroups.map((g) => g.id)
+
+    const { rows: existingDates } = await db.query(
+      `SELECT id, group_id, to_char(defense_date, 'YYYY-MM-DD') AS defense_date
+       FROM defense_dates WHERE group_id = ANY($1)`,
+      [groupIds],
+    )
+
+    const fileKeys = new Set(entries.map((e) => `${groupMap[e.group]}_${e.date}`))
+    const staleIds = existingDates
+      .filter((d) => !fileKeys.has(`${d.group_id}_${d.defense_date}`))
+      .map((d) => d.id)
+
+    let removed = 0
+    if (staleIds.length > 0) {
+      await db.query('DELETE FROM defense_dates WHERE id = ANY($1)', [staleIds])
+      removed = staleIds.length
+    }
 
     let inserted = 0
     let updated = 0
@@ -114,7 +133,7 @@ export const importSchedule = async (req, res) => {
       }
     }
 
-    res.json({ ok: true, inserted, updated })
+    res.json({ ok: true, inserted, updated, removed })
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: 'Ошибка при импорте расписания' })

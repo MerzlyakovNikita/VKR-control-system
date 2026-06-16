@@ -121,6 +121,26 @@ export const updateStudentAndThesis = async (req, res) => {
       defense_date_id,
     } = req.body
 
+    if (defense_date_id) {
+      const { rows: [current] } = await db.query(
+        `SELECT s.defense_date_id FROM students s WHERE s.id = $1`,
+        [id],
+      )
+      if (String(current.defense_date_id) !== String(defense_date_id)) {
+        const { rows: [slot] } = await db.query(
+          `SELECT dd.capacity, COUNT(s.id) AS taken
+           FROM defense_dates dd
+           LEFT JOIN students s ON s.defense_date_id = dd.id
+           WHERE dd.id = $1
+           GROUP BY dd.capacity`,
+          [defense_date_id],
+        )
+        if (slot && parseInt(slot.taken) >= slot.capacity) {
+          return res.status(400).json({ message: 'На выбранную дату защиты нет свободных мест' })
+        }
+      }
+    }
+
     await db.query(
       `UPDATE students SET last_name=$1, first_name=$2, middle_name=$3, email=$4, phone=$5, defense_date_id=$6 WHERE id=$7`,
       [

@@ -35,8 +35,6 @@ export default function ProfilePage() {
     loadUser()
   }, [])
 
-  const isSecretary = user?.roles?.includes('SECRETARY')
-
   const handleEdit = () => {
     form.setFieldsValue({
       last_name: user.last_name,
@@ -104,19 +102,15 @@ export default function ProfilePage() {
             />
             <InfoRow label="Email" value={user.email} />
             <InfoRow label="Телефон" value={formatPhone(user.phone)} />
-            {!isSecretary && (
-              <>
-                <InfoRow
-                  label="Должность"
-                  value={user.position ? POSITION_LABELS[user.position] : undefined}
-                />
-                {hasDegree(user.position) && (
-                  <InfoRow
-                    label="Учёная степень"
-                    value={user.degree ? DEGREE_LABELS[user.degree] : undefined}
-                  />
-                )}
-              </>
+            <InfoRow
+              label="Должность"
+              value={user.position ? POSITION_LABELS[user.position] : undefined}
+            />
+            {hasDegree(user.position) && (
+              <InfoRow
+                label="Учёная степень"
+                value={user.degree ? DEGREE_LABELS[user.degree] : undefined}
+              />
             )}
             <div className="card-actions">
               <Button icon={<EditOutlined />} onClick={handleEdit}>
@@ -167,36 +161,32 @@ export default function ProfilePage() {
             <Form.Item label="Телефон" name="phone">
               <Input />
             </Form.Item>
-            {!isSecretary && (
-              <>
-                <Form.Item label="Должность" name="position">
-                  <Select
-                    allowClear={!user.position}
-                    placeholder="Выберите должность"
-                    options={Object.entries(POSITION_LABELS).map(([key, label]) => ({
-                      value: key,
-                      label,
-                    }))}
-                  />
-                </Form.Item>
-                <Form.Item noStyle shouldUpdate={(prev, cur) => prev.position !== cur.position}>
-                  {({ getFieldValue }) =>
-                    hasDegree(getFieldValue('position')) ? (
-                      <Form.Item label="Учёная степень" name="degree">
-                        <Select
-                          allowClear={!user.degree}
-                          placeholder="Выберите степень"
-                          options={Object.entries(DEGREE_LABELS).map(([key, label]) => ({
-                            value: key,
-                            label,
-                          }))}
-                        />
-                      </Form.Item>
-                    ) : null
-                  }
-                </Form.Item>
-              </>
-            )}
+            <Form.Item label="Должность" name="position">
+              <Select
+                allowClear={!user.position}
+                placeholder="Выберите должность"
+                options={Object.entries(POSITION_LABELS).map(([key, label]) => ({
+                  value: key,
+                  label,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item noStyle shouldUpdate={(prev, cur) => prev.position !== cur.position}>
+              {({ getFieldValue }) =>
+                hasDegree(getFieldValue('position')) ? (
+                  <Form.Item label="Учёная степень" name="degree">
+                    <Select
+                      allowClear={!user.degree}
+                      placeholder="Выберите степень"
+                      options={Object.entries(DEGREE_LABELS).map(([key, label]) => ({
+                        value: key,
+                        label,
+                      }))}
+                    />
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
             <div className="card-actions">
               <Button icon={<CloseOutlined />} onClick={handleCancel}>
                 Отмена

@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vkr_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - vkr_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vkr_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: vkr_db
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - vkr_net
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /
+    restart: unless-stopped
+    ports:
+      - "44444:80"
+    depends_on:
+      - backend
+    networks:
+      - vkr_net
+
+networks:
+  vkr_net:
+
+volumes:
+  db_data:
